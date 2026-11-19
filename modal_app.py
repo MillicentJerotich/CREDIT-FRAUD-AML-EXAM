@@ -12,7 +12,10 @@ HERE = Path(__file__).resolve().parent
 image = (
     modal.Image.debian_slim(python_version="3.13")
     .pip_install_from_requirements(str(HERE / "requirements-api.txt"))
-    .env({"FRAUD_ROOT": "/root/project", "PYTHONPATH": "/root/project/src:/root/project"})
+    .env({"FRAUD_ROOT": "/root/project", "PYTHONPATH": "/root/project/src:/root/project",
+          # dashboard telemetry goes to a persistent modal.Dict shared by all containers
+          "TELEMETRY_BACKEND": "modal", "TELEMETRY_DICT": "fraud-api-telemetry",
+          "TELEMETRY_MAX_EVENTS": "300"})
     .add_local_dir(str(HERE / "configs"), remote_path="/root/project/configs")
     .add_local_dir(str(HERE / "src"), remote_path="/root/project/src")
     .add_local_dir(str(HERE / "app"), remote_path="/root/project/app")

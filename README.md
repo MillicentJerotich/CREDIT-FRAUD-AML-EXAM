@@ -2,6 +2,9 @@
 
 **Millicent Jerotich Kemei, 224097**, DSA 8401 Applied Machine Learning
 
+**Live API:** https://millicentjerotich--fraud-detection-api-fastapi-app.modal.run/docs ·
+**Live dashboard:** https://millicentjerotich--fraud-detection-api-fastapi-app.modal.run/dashboard
+
 A reproducible pipeline that turns the Kaggle credit-card transactions dataset into a deployed fraud-scoring API.
 It covers data validation, time-ordered splitting, a shortlist of six model families, tuning, calibrated
 probabilities, a **euro-cost-optimal decision rule**, packaging as a FastAPI service in Docker, and drift monitoring.
@@ -48,6 +51,8 @@ flowchart LR
 
     subgraph Serving["Online serving (Docker image, target: api)"]
         API["FastAPI app<br/>/score · /drift · /demo · /health · /docs"]
+        DASH["/dashboard<br/>live metrics (modal.Dict on Modal)"]
+        API --> DASH
         MON["fraud.monitoring<br/>PSI vs. training reference"]
         API --> MON
     end
@@ -83,6 +88,8 @@ flowchart LR
 │   ├── monitoring.py            #   Population Stability Index drift checks (CLI too)
 │   └── predict.py               #   load the bundle and score transactions
 ├── app/main.py                  # FastAPI service
+├── app/telemetry.py             # request recording + aggregation for the dashboard
+├── app/dashboard.html           # live monitoring dashboard page
 ├── artifacts/                   # trained, serialized model + metrics + model card (committed)
 ├── reports/REPORT.md            # final report; figures in reports/figures/
 ├── notebooks/                   # exploratory end-to-end notebook (incl. SMOTE and drift experiments)
@@ -102,8 +109,8 @@ flowchart LR
 Requirements: **Python 3.11+** (developed on 3.13) and the dataset.
 
 ```bash
-git clone https://github.com/<your-username>/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/MillicentJerotich/CREDIT-FRAUD-AML-EXAM.git
+cd CREDIT-FRAUD-AML-EXAM
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -173,6 +180,9 @@ Open **http://localhost:8000/docs** for interactive documentation.
 | `GET /demo` | scores 5 bundled test transactions (3 genuine, 2 real frauds) |
 | `POST /score` | scores up to 1,000 transactions |
 | `POST /drift` | PSI drift report for a batch (≥ 100 transactions) vs. the training reference |
+| `GET /dashboard` | **live monitoring dashboard** (see below) |
+| `GET /metrics` | the dashboard's data as JSON |
+| `GET /sample-batch?n=50` | random test-set transactions, used by the dashboard's test button |
 
 ```bash
 curl -X POST http://localhost:8000/score -H "Content-Type: application/json" -d '[{"Time": 0, "V1": -1.36,
@@ -184,6 +194,30 @@ curl -X POST http://localhost:8000/score -H "Content-Type: application/json" -d 
 ```
 
 Without Docker: `uvicorn app.main:app --port 8000`.
+
+## Live dashboard
+
+Open **`/dashboard`** on the running API (locally `http://localhost:8000/dashboard`, or your `…modal.run/dashboard`).
+Every call to the API is recorded and the page refreshes itself every 10 seconds:
+
+- **Key figures:** requests, transactions scored, alerts (REVIEW) and alert rate, mean fraud probability,
+  latency (average and p95), errors
+- **Charts:** requests per minute, fraud-probability distribution, latency per scoring request,
+  input drift (PSI per feature vs. the training data)
+- **Tables:** the most recent scored transactions with their thresholds and decisions, and traffic by endpoint
+
+Press **Send 50 test transactions** to generate traffic from the bundled test batch. The batch is fraud-enriched
+(74 of 400 rows are frauds), so its alert rate is far higher than real traffic.
+
+![Live dashboard](reports/figures/dashboard.png)
+
+Storage: locally and in Docker the history is kept in memory (cleared on restart). On Modal it is kept in a
+persistent `modal.Dict` named `fraud-api-telemetry`, shared by all containers, so it survives scale-to-zero.
+It keeps the last 300 requests: exact totals for every request plus a sample of up to 50 transactions per
+request for the table and the drift check. To reset it: `modal dict clear fraud-api-telemetry`.
+
+The dashboard refreshes only while its browser tab is visible. On Modal, an open dashboard tab keeps the
+server awake (and using credits), so close it, or set refresh to "off", when you are done.
 
 ## Monitoring
 
@@ -212,7 +246,7 @@ push to `main`.
 ## Tests and CI
 
 ```bash
-pytest -q        # 18 tests: features, data validation, cost model, PSI, API endpoints
+pytest -q        # 21 tests: features, data validation, cost model, PSI, API endpoints, dashboard
 ```
 
 `.github/workflows/ci.yml` runs the tests on every push and pull request.
