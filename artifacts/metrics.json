@@ -1,0 +1,294 @@
+{
+  "shortlist_validation": [
+    {
+      "model": "Random Forest",
+      "PR-AUC": 0.7696,
+      "ROC-AUC": 0.9575,
+      "fit seconds": 62.4
+    },
+    {
+      "model": "Tuned HGB",
+      "PR-AUC": 0.756,
+      "ROC-AUC": 0.9796,
+      "fit seconds": 208.9
+    },
+    {
+      "model": "Logistic regression",
+      "PR-AUC": 0.752,
+      "ROC-AUC": 0.9731,
+      "fit seconds": 0.3
+    },
+    {
+      "model": "MLP",
+      "PR-AUC": 0.7513,
+      "ROC-AUC": 0.9125,
+      "fit seconds": 4.7
+    },
+    {
+      "model": "Gradient boosting (HGB)",
+      "PR-AUC": 0.445,
+      "ROC-AUC": 0.7366,
+      "fit seconds": 0.5
+    },
+    {
+      "model": "Isolation Forest (unsupervised)",
+      "PR-AUC": 0.0235,
+      "ROC-AUC": 0.9389,
+      "fit seconds": 0.7
+    },
+    {
+      "model": "Dummy (prior)",
+      "PR-AUC": 0.001,
+      "ROC-AUC": 0.5,
+      "fit seconds": 0.1
+    }
+  ],
+  "tuning": {
+    "best_cv_pr_auc": 0.8011388268677688,
+    "best_params": {
+      "min_samples_leaf": 100,
+      "max_leaf_nodes": 15,
+      "max_iter": 400,
+      "learning_rate": 0.05,
+      "l2_regularization": 1.0,
+      "class_weight": null
+    }
+  },
+  "selection": {
+    "selected": "Random Forest",
+    "runner_up": "Tuned HGB",
+    "delta_pr_auc_mean": 0.013497038943303608,
+    "delta_pr_auc_ci95": [
+      -0.022947574409889943,
+      0.0557429928567219
+    ],
+    "selected_wins_share": 0.752
+  },
+  "calibration": {
+    "brier_raw": 0.0003464465429341938,
+    "brier_calibrated": 0.0003302607171758406,
+    "mean_p_raw": 0.001829651423687041,
+    "mean_p_calibrated": 0.0010050905447878122,
+    "observed_rate": 0.0010044937879989425
+  },
+  "thresholds": {
+    "cost": 0.01587218045112782,
+    "f2": 0.01587218045112782
+  },
+  "validation_policies": [
+    {
+      "policy": "Default 0.5",
+      "alerts": 41.0,
+      "TP": 39.0,
+      "FP": 2.0,
+      "FN": 18.0,
+      "precision": 0.9512,
+      "recall": 0.6842,
+      "fraud \u20ac caught %": 60.7439,
+      "cost \u20ac": 4811.45,
+      "saving vs no model %": 60.6621
+    },
+    {
+      "policy": "Amount-aware Bayes rule",
+      "alerts": 38.0,
+      "TP": 36.0,
+      "FP": 2.0,
+      "FN": 21.0,
+      "precision": 0.9474,
+      "recall": 0.6316,
+      "fraud \u20ac caught %": 63.3977,
+      "cost \u20ac": 4486.86,
+      "saving vs no model %": 63.3159
+    },
+    {
+      "policy": "Best single threshold",
+      "alerts": 49.0,
+      "TP": 43.0,
+      "FP": 6.0,
+      "FN": 14.0,
+      "precision": 0.8776,
+      "recall": 0.7544,
+      "fraud \u20ac caught %": 63.4141,
+      "cost \u20ac": 4504.86,
+      "saving vs no model %": 63.1688
+    },
+    {
+      "policy": "Max-F2 threshold",
+      "alerts": 49.0,
+      "TP": 43.0,
+      "FP": 6.0,
+      "FN": 14.0,
+      "precision": 0.8776,
+      "recall": 0.7544,
+      "fraud \u20ac caught %": 63.4141,
+      "cost \u20ac": 4504.86,
+      "saving vs no model %": 63.1688
+    },
+    {
+      "policy": "No model (approve all)",
+      "alerts": 0.0,
+      "TP": 0.0,
+      "FP": 0.0,
+      "FN": 57.0,
+      "precision": null,
+      "recall": 0.0,
+      "fraud \u20ac caught %": 0.0,
+      "cost \u20ac": 12231.09,
+      "saving vs no model %": 0.0
+    }
+  ],
+  "chosen_policy": "Amount-aware Bayes rule",
+  "test": {
+    "PR-AUC": {
+      "estimate": 0.8108853178672139,
+      "ci95": [
+        0.7266581568139013,
+        0.8878612237400288
+      ]
+    },
+    "ROC-AUC": {
+      "estimate": 0.9577278259343477,
+      "ci95": [
+        0.9196871196701362,
+        0.9867738441787356
+      ]
+    },
+    "saving %": {
+      "estimate": 68.52790038912117,
+      "ci95": [
+        41.68364651351012,
+        93.77679648307678
+      ]
+    },
+    "recall": {
+      "estimate": 0.6756756756756757,
+      "ci95": [
+        0.5540540540540541,
+        0.7837837837837838
+      ]
+    },
+    "precision": {
+      "estimate": 0.9259259259259259,
+      "ci95": [
+        0.8544932935916542,
+        0.9811320754716981
+      ]
+    }
+  },
+  "test_policies": [
+    {
+      "policy": "Default 0.5",
+      "alerts": 55.0,
+      "TP": 51.0,
+      "FP": 4.0,
+      "FN": 23.0,
+      "precision": 0.9273,
+      "recall": 0.6892,
+      "fraud \u20ac caught %": 48.9938,
+      "cost \u20ac": 3961.59,
+      "saving vs no model %": 48.735
+    },
+    {
+      "policy": "Amount-aware Bayes rule",
+      "alerts": 54.0,
+      "TP": 50.0,
+      "FP": 4.0,
+      "FN": 24.0,
+      "precision": 0.9259,
+      "recall": 0.6757,
+      "fraud \u20ac caught %": 68.7867,
+      "cost \u20ac": 2432.06,
+      "saving vs no model %": 68.5279
+    },
+    {
+      "policy": "Best single threshold",
+      "alerts": 67.0,
+      "TP": 57.0,
+      "FP": 10.0,
+      "FN": 17.0,
+      "precision": 0.8507,
+      "recall": 0.7703,
+      "fraud \u20ac caught %": 68.9297,
+      "cost \u20ac": 2451.01,
+      "saving vs no model %": 68.2827
+    },
+    {
+      "policy": "Max-F2 threshold",
+      "alerts": 67.0,
+      "TP": 57.0,
+      "FP": 10.0,
+      "FN": 17.0,
+      "precision": 0.8507,
+      "recall": 0.7703,
+      "fraud \u20ac caught %": 68.9297,
+      "cost \u20ac": 2451.01,
+      "saving vs no model %": 68.2827
+    },
+    {
+      "policy": "No model (approve all)",
+      "alerts": 0.0,
+      "TP": 0.0,
+      "FP": 0.0,
+      "FN": 74.0,
+      "precision": null,
+      "recall": 0.0,
+      "fraud \u20ac caught %": 0.0,
+      "cost \u20ac": 7727.67,
+      "saving vs no model %": 0.0
+    }
+  ],
+  "test_confusion_matrix": [
+    [
+      56668,
+      4
+    ],
+    [
+      24,
+      50
+    ]
+  ],
+  "test_missed_frauds_by_amount": [
+    {
+      "band": "\u20ac0-1",
+      "caught": 19,
+      "total": 28,
+      "missed \u20ac": 3.76
+    },
+    {
+      "band": "\u20ac1-10",
+      "caught": 9,
+      "total": 16,
+      "missed \u20ac": 39.769999999999996
+    },
+    {
+      "band": "\u20ac10-100",
+      "caught": 11,
+      "total": 15,
+      "missed \u20ac": 92.18
+    },
+    {
+      "band": "\u20ac100-500",
+      "caught": 9,
+      "total": 11,
+      "missed \u20ac": 545.06
+    },
+    {
+      "band": "\u20ac500+",
+      "caught": 2,
+      "total": 4,
+      "missed \u20ac": 1731.29
+    }
+  ],
+  "permutation_importance_top10": {
+    "V4": 0.0388,
+    "V14": 0.0232,
+    "V12": 0.0127,
+    "V1": 0.0082,
+    "V11": 0.0076,
+    "V7": 0.0064,
+    "V17": 0.0063,
+    "V10": 0.0051,
+    "V20": 0.0049,
+    "V22": 0.0034
+  }
+}

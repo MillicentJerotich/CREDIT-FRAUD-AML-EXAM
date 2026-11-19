@@ -1,0 +1,9 @@
+# Render Blueprint: Dashboard -> New -> Blueprint -> select this repository.
+services:
+  - type: web
+    name: fraud-detection-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile      # builds the default (last) stage: the API image
+    healthCheckPath: /health
+    autoDeploy: true

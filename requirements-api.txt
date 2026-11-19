@@ -1,0 +1,11 @@
+# Serving dependencies, pinned to the versions the model was trained with
+# (a pickled scikit-learn model must be loaded with the same scikit-learn / numpy versions).
+numpy==2.5.3
+pandas==3.0.5
+scipy==1.18.1
+scikit-learn==1.9.1
+joblib==1.6.0
+pyyaml==6.0.3
+fastapi==0.165.0
+uvicorn==0.54.0
+pydantic==2.13.5

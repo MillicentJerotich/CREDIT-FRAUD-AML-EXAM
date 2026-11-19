@@ -1,0 +1,43 @@
+{
+  "model_name": "Random Forest",
+  "policy": "Amount-aware Bayes rule",
+  "c_fp": 5.0,
+  "created": "2026-11-19T22:39:19",
+  "python": "3.13.18",
+  "sklearn": "1.9.1",
+  "pandas": "3.0.5",
+  "random_state": 42,
+  "train_rows": 170235,
+  "train_time_window_s": [
+    0.0,
+    120392.0
+  ],
+  "model_params": {
+    "bootstrap": true,
+    "ccp_alpha": 0.0,
+    "class_weight": "balanced_subsample",
+    "criterion": "gini",
+    "max_depth": null,
+    "max_features": "sqrt",
+    "max_leaf_nodes": null,
+    "max_samples": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 3,
+    "min_samples_split": 2,
+    "min_weight_fraction_leaf": 0.0,
+    "monotonic_cst": null,
+    "n_estimators": 200,
+    "n_jobs": -1,
+    "oob_score": false,
+    "random_state": 42,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "test_metrics": {
+    "PR-AUC": 0.8109,
+    "ROC-AUC": 0.9577,
+    "saving %": 68.5279,
+    "recall": 0.6757,
+    "precision": 0.9259
+  }
+}

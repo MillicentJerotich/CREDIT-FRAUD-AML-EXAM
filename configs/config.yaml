@@ -1,0 +1,23 @@
+# Single source of truth for the pipeline. Change a value here and re-run `make all` (or the two python -m commands).
+seed: 42
+
+data:
+  raw_path: data/raw/creditcard.csv          # also accepts the Kaggle zip, e.g. data/raw/creditcardfraud.zip
+  processed_dir: data/processed
+  expected_rows: 284807                      # the full Kaggle file; a smaller number means a truncated download
+  expected_columns: 31
+  split: {train: 0.60, validation: 0.20}     # time-ordered; the newest remaining 20% is the test set
+
+costs:
+  false_positive_eur: 5.0                    # analyst review + customer friction per false alarm (assumption)
+  # cost of a missed fraud = the transaction amount
+
+tuning:
+  n_iter: 12                                 # random-search candidates for gradient boosting
+  cv_splits: 4                               # TimeSeriesSplit folds
+
+evaluation:
+  n_bootstrap: 1000
+
+artifacts_dir: artifacts
+figures_dir: reports/figures

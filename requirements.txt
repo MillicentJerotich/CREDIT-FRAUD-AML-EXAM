@@ -1,0 +1,8 @@
+# Full environment: data pipeline, training, notebook extras and tests
+-r requirements-api.txt
+pyarrow==26.0.1
+matplotlib==3.11.2
+seaborn==0.13.2
+imbalanced-learn==0.14.2
+pytest==9.1.1
+httpx==0.28.1

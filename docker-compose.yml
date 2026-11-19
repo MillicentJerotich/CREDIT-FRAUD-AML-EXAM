@@ -1,0 +1,27 @@
+# Reproduce everything with Docker:
+#   1. put creditcard.csv in data/raw/
+#   2. docker compose --profile train run --rm pipeline   # validate data, train, write artifacts/ and reports/figures/
+#   3. docker compose up --build api                      # serve on http://localhost:8000 (docs at /docs)
+services:
+  pipeline:
+    build:
+      context: .
+      target: train
+    profiles: ["train"]          # only runs when asked for explicitly
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+      - ./reports:/app/reports
+      - ./configs:/app/configs:ro
+
+  api:
+    build:
+      context: .
+      target: api
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: "8000"
+    volumes:
+      - ./artifacts:/app/artifacts:ro   # serve freshly trained artifacts without rebuilding the image
+    restart: unless-stopped
