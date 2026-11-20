@@ -24,7 +24,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
-from app.telemetry import NOT_RECORDED, make_store, scoring_payload, summarize
+from app.telemetry import NOT_RECORDED, load_reference, make_store, scoring_payload, summarize
 from fraud import predict
 from fraud.monitoring import drift_report
 
@@ -32,8 +32,10 @@ BUNDLE = predict.load()
 META = BUNDLE["metadata"]
 SAMPLE = predict.DEFAULT_MODEL_PATH.parent / "sample_request.csv"
 SAMPLE_BATCH = predict.DEFAULT_MODEL_PATH.parent / "sample_batch.csv"
-DASHBOARD_HTML = Path(__file__).resolve().parent / "dashboard.html"
+DASHBOARD_HTML = Path(__file__).resolve().parent / "dashboard.html"              # business view
+TECHNICAL_HTML = Path(__file__).resolve().parent / "dashboard_technical.html"    # technical view
 STORE = make_store()
+REFERENCE = load_reference(predict.DEFAULT_MODEL_PATH.parent / "metrics.json")
 log = logging.getLogger("fraud-api")
 
 app = FastAPI(
@@ -57,12 +59,21 @@ async def record_telemetry(request: Request, call_next):
         return response
     finally:
         event = {"ts": time.time(), "path": request.url.path, "method": request.method, "status": status_code,
-                 "latency_ms": (time.perf_counter() - t0) * 1000,
+                 "latency_ms": (time.perf_counter() - t0) * 1000, "source": traffic_source(request),
                  "n": 0, "scores": None, **getattr(request.state, "scoring", {})}
         if STORE.remote:      # network write: do it off the request path
             asyncio.get_running_loop().run_in_executor(None, _safe_record, event)
         else:
             _safe_record(event)
+
+
+def traffic_source(request: Request) -> str:
+    """'test' = the dashboard's test button, 'demo' = /demo, 'api' = everything else (real use of the API)."""
+    if request.headers.get("x-traffic-source") == "dashboard-test":
+        return "test"
+    if request.url.path == "/demo":
+        return "demo"
+    return "api"
 
 
 def _safe_record(event):
@@ -106,7 +117,8 @@ code{{background:#f2f2f2;padding:2px 5px;border-radius:4px}}td{{padding:2px 12px
 <table><tr><td>Test PR-AUC</td><td>{m['PR-AUC']:.3f}</td></tr><tr><td>Test recall</td><td>{m['recall']:.1%}</td></tr>
 <tr><td>Test precision</td><td>{m['precision']:.1%}</td></tr><tr><td>Fraud losses avoided</td><td>{m['saving %']:.1f}%</td></tr></table>
 <ul><li><a href="/docs">/docs</a> - interactive documentation (try <code>POST /score</code>)</li>
-<li><a href="/dashboard">/dashboard</a> - live monitoring dashboard</li>
+<li><a href="/dashboard">/dashboard</a> - fraud monitor (plain-language dashboard)</li>
+<li><a href="/dashboard/technical">/dashboard/technical</a> - technical monitoring dashboard</li>
 <li><a href="/demo">/demo</a> - score 5 sample transactions</li>
 <li><a href="/model-info">/model-info</a> - full metadata</li><li><a href="/health">/health</a></li></ul>
 </body></html>"""
@@ -151,21 +163,33 @@ def drift(txns: List[Transaction]):
     return report.reset_index(names="feature").to_dict(orient="records")
 
 
-_metrics_cache = {"t": 0.0, "data": None}
+_metrics_cache = {}
 
 
 @app.get("/metrics")
-def metrics(fresh: bool = False):
-    """Aggregated telemetry for the dashboard (cached for 3 seconds unless fresh=true)."""
-    if fresh or _metrics_cache["data"] is None or time.time() - _metrics_cache["t"] > 3:
-        _metrics_cache["data"] = summarize(STORE.events(), BUNDLE)
-        _metrics_cache["t"] = time.time()
-    return _metrics_cache["data"]
+def metrics(fresh: bool = False, include_test: bool = True):
+    """Aggregated telemetry for the dashboard (cached for 3 seconds unless fresh=true).
+
+    include_test=false shows only real API traffic (drops the dashboard's test button and /demo).
+    """
+    key = include_test
+    hit = _metrics_cache.get(key)
+    if fresh or hit is None or time.time() - hit[0] > 3:
+        hit = (time.time(), summarize(STORE.events(), BUNDLE, include_test=include_test, reference=REFERENCE))
+        _metrics_cache[key] = hit
+    return hit[1]
 
 
 @app.get("/dashboard", include_in_schema=False)
 def dashboard():
+    """Plain-language fraud monitor for non-technical readers."""
     return FileResponse(DASHBOARD_HTML, media_type="text/html")
+
+
+@app.get("/dashboard/technical", include_in_schema=False)
+def dashboard_technical():
+    """Detailed view: latency, drift (PSI), score distribution, endpoints."""
+    return FileResponse(TECHNICAL_HTML, media_type="text/html")
 
 
 @app.get("/sample-batch")

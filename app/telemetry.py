@@ -13,6 +13,7 @@ Two storage backends:
 * ModalDictStore (TELEMETRY_BACKEND=modal): a persistent modal.Dict shared by every container, so the
   dashboard survives Modal's scale-to-zero and shows traffic from all containers.
 """
+import json
 import os
 import time
 import uuid
@@ -88,17 +89,56 @@ def scoring_payload(df: pd.DataFrame, scored: pd.DataFrame) -> dict:
         sample.append({"amount": float(raw["Amount"]), "p": float(s["fraud_probability"]),
                        "t": float(s["threshold"]), "d": s["decision"],
                        "x": [round(float(raw[c]), 5) for c in RAW_COLS]})
-    return {"n": int(len(df)), "alerts": int((scored["decision"] == "REVIEW").sum()), "p_sum": float(p.sum()),
-            "hist": np.histogram(p, bins=HIST_EDGES)[0].tolist(), "scores": sample}
+    review = (scored["decision"] == "REVIEW").to_numpy()
+    amount = df["Amount"].to_numpy(dtype=float)
+    hour = ((df["Time"].to_numpy(dtype=float) % 86400) // 3600).astype(int)      # transaction's hour of day
+    return {"n": int(len(df)), "alerts": int(review.sum()), "p_sum": float(p.sum()),
+            "hist": np.histogram(p, bins=HIST_EDGES)[0].tolist(),
+            "amount_total": float(amount.sum()), "amount_review": float(amount[review].sum()),
+            "hours_approved": np.bincount(hour[~review], minlength=24)[:24].tolist(),
+            "hours_review": np.bincount(hour[review], minlength=24)[:24].tolist(),
+            "scores": sample}
+
+
+TIME_FEATURES = {"hour_sin", "hour_cos"}
+SOURCE_LABELS = {"api": "real API calls", "test": "test button", "demo": "/demo", "earlier": "recorded before labelling"}
+
+
+def load_reference(metrics_path) -> dict:
+    """Expected behaviour from the offline evaluation (test set), for comparison on the dashboard."""
+    ref = {"test_alert_rate": None, "test_fraud_rate": None, "train_fraud_rate": 0.002}
+    try:
+        m = json.loads(open(metrics_path).read())
+        cm = m["test_confusion_matrix"]                       # [[TN, FP], [FN, TP]]
+        n = sum(map(sum, cm))
+        ref["test_alert_rate"] = (cm[0][1] + cm[1][1]) / n
+        ref["test_fraud_rate"] = (cm[1][0] + cm[1][1]) / n
+    except Exception:
+        pass
+    return ref
 
 
 def _pct(values, q):
     return float(np.percentile(values, q)) if len(values) else None
 
 
-def summarize(events: list, bundle: dict, now: float | None = None) -> dict:
-    """Aggregate raw events into everything the dashboard displays."""
+def summarize(events: list, bundle: dict, now: float | None = None, include_test: bool = True,
+              reference: dict | None = None) -> dict:
+    """Aggregate raw events into everything the dashboard displays.
+
+    include_test=False keeps only real API traffic (source 'api'); events recorded before sources were
+    labelled count as test traffic.
+    """
     now = now or time.time()
+    all_events = events
+    mix = {}
+    for e in all_events:
+        src = e.get("source", "earlier")
+        d = mix.setdefault(src, {"requests": 0, "transactions": 0})
+        d["requests"] += 1
+        d["transactions"] += e.get("n", 0) if e.get("scores") is not None else 0
+    if not include_test:
+        events = [e for e in events if e.get("source") == "api"]
     scoring = [e for e in events if e.get("scores") is not None]
     txns = [dict(s, ts=e["ts"]) for e in scoring for s in e["scores"]]        # stored samples
     lat = [e["latency_ms"] for e in scoring]
@@ -125,20 +165,37 @@ def summarize(events: list, bundle: dict, now: float | None = None) -> dict:
         rows = [{"feature": c, "psi": round(psi(bundle["reference_bins"][c], feats[c]), 4)} for c in OUT_COLS]
         rows.sort(key=lambda r: r["psi"], reverse=True)
         for r in rows:
-            r["status"] = status(r["psi"])
+            # hour-of-day features shift whenever traffic covers only part of the day: expected, not an alarm
+            r["status"] = "expected" if r["feature"] in TIME_FEATURES else status(r["psi"])
+        data_rows = [r for r in rows if r["feature"] not in TIME_FEATURES]
         drift = {"n": min(len(txns), 2000), "sampled": True, "features": rows[:10],
-                 "alerts": sum(r["status"] == "ALERT" for r in rows),
-                 "investigate": sum(r["status"] == "investigate" for r in rows)}
+                 "alerts": sum(r["status"] == "ALERT" for r in data_rows),
+                 "investigate": sum(r["status"] == "investigate" for r in data_rows),
+                 "stable": sum(r["status"] == "stable" for r in data_rows),
+                 "data_features": len(data_rows),
+                 "max_data_psi": max(r["psi"] for r in data_rows),
+                 "top_data_feature": data_rows[0]["feature"]}
 
-    recent_txns = [{"ts": t["ts"], "amount": t["amount"], "p": t["p"], "t": t["t"], "d": t["d"]} for t in txns[-25:]][::-1]
+    recent_txns = [{"ts": t["ts"], "amount": t["amount"], "p": t["p"], "t": t["t"], "d": t["d"],
+                    "hour": int((t["x"][0] % 86400) // 3600) if t.get("x") else None} for t in txns[-25:]][::-1]
+    recent_alerts = [{"ts": t["ts"], "amount": t["amount"], "p": t["p"], "t": t["t"],
+                      "hour": int((t["x"][0] % 86400) // 3600) if t.get("x") else None}
+                     for t in txns if t["d"] == "REVIEW"][-8:][::-1]
+    hours_ok = np.sum([e.get("hours_approved", [0] * 24) for e in scoring], axis=0).tolist() if scoring else [0] * 24
+    hours_rv = np.sum([e.get("hours_review", [0] * 24) for e in scoring], axis=0).tolist() if scoring else [0] * 24
     m = bundle["metadata"]
     return {
         "generated": now,
         "model": {"name": m["model_name"], "policy": bundle["policy"], "c_fp": bundle["c_fp"],
                   "sklearn": m.get("sklearn"), "created": m.get("created"), "test_metrics": m["test_metrics"]},
+        "filter": {"include_test": include_test},
+        "traffic_mix": [{"source": k, "label": SOURCE_LABELS.get(k, k), **v} for k, v in sorted(mix.items())],
+        "reference": reference or {},
         "totals": {
             "requests": len(events),
             "errors": sum(e["status"] >= 400 for e in events),
+            "client_errors": sum(400 <= e["status"] < 500 for e in events),
+            "server_errors": sum(e["status"] >= 500 for e in events),
             "scoring_requests": len(scoring),
             "transactions": int(n_txns),
             "alerts": int(alerts),
@@ -146,6 +203,8 @@ def summarize(events: list, bundle: dict, now: float | None = None) -> dict:
             "mean_p": (p_sum / n_txns) if n_txns else None,
             "latency_avg_ms": float(np.mean(lat)) if lat else None,
             "latency_p95_ms": _pct(lat, 95),
+            "amount_total": float(sum(e.get("amount_total", 0.0) for e in scoring)),
+            "amount_review": float(sum(e.get("amount_review", 0.0) for e in scoring)),
             "first_ts": events[0]["ts"] if events else None,
             "last_ts": events[-1]["ts"] if events else None,
         },
@@ -155,6 +214,8 @@ def summarize(events: list, bundle: dict, now: float | None = None) -> dict:
         "latency_series": [{"ts": e["ts"], "ms": round(e["latency_ms"], 1), "path": e["path"], "n": e.get("n", 0)}
                            for e in scoring[-100:]],
         "recent": recent_txns,
+        "recent_alerts": recent_alerts,
+        "by_hour": [{"hour": h, "approved": int(hours_ok[h]), "review": int(hours_rv[h])} for h in range(24)],
         "drift": drift,
     }
 

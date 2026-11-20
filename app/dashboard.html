@@ -3,74 +3,90 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fraud API · Live dashboard</title>
+<title>Card Fraud Monitor</title>
 <link rel="icon" href="data:,">
 <style>
   .viz-root {
-    color-scheme: light;
-    --page: #f9f9f7; --surface-1: #fcfcfb; --border: rgba(11,11,11,0.10);
-    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
-    --grid: #e1e0d9; --axis: #c3c2b7;
-    --series-1: #2a78d6;
-    --good: #0ca30c; --good-text: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
-    --wash: rgba(42,120,214,0.08);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root {
-      color-scheme: dark;
-      --page: #0d0d0d; --surface-1: #1a1a19; --border: rgba(255,255,255,0.10);
-      --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #898781;
-      --grid: #2c2c2a; --axis: #383835; --series-1: #3987e5; --good-text: #0ca30c;
-      --wash: rgba(57,135,229,0.14);
-    }
-  }
-  :root[data-theme="dark"] .viz-root {
     color-scheme: dark;
-    --page: #0d0d0d; --surface-1: #1a1a19; --border: rgba(255,255,255,0.10);
-    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #898781;
-    --grid: #2c2c2a; --axis: #383835; --series-1: #3987e5; --good-text: #0ca30c;
-    --wash: rgba(57,135,229,0.14);
+    --page: #0b1416; --surface-1: #142124; --surface-2: #1b2b2e; --border: rgba(255,255,255,0.10);
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f9a98;
+    --grid: #26383b; --axis: #3a4e51; --accent: #2fb6a3;
+    --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --wash: rgba(255,255,255,0.06);
   }
   * { box-sizing: border-box; }
-  body { margin: 0; }
-  .viz-root { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--page);
-    color: var(--text-primary); min-height: 100vh; padding: 24px; }
-  .wrap { max-width: 1200px; margin: 0 auto; }
-  header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-  h1 { font-size: 22px; margin: 0 0 4px; font-weight: 650; }
-  .sub { color: var(--text-secondary); font-size: 13px; }
+  body { margin: 0; background: #0b1416; }
+  .viz-root { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:
+      radial-gradient(1200px 500px at 0% 0%, rgba(47,182,163,0.16), transparent 60%), var(--page);
+    color: var(--text-primary); min-height: 100vh; padding: 28px 24px; line-height: 1.45; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 14px; margin-bottom: 14px; }
+  h1 { font-size: 30px; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
+  .lead { color: var(--text-secondary); font-size: 15px; max-width: 760px; margin: 0; }
+  h2 { font-size: 17px; margin: 0 0 4px; font-weight: 650; }
+  .desc { font-size: 13px; color: var(--text-muted); margin: 0 0 10px; }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--text-secondary); }
-  button, select { font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border);
-    background: var(--surface-1); color: var(--text-primary); cursor: pointer; }
-  button.primary { background: var(--series-1); color: #fff; border-color: transparent; }
+  button, select { font: inherit; font-size: 13px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-primary); cursor: pointer; }
+  button.primary { background: var(--accent); color: #062420; border-color: transparent; font-weight: 650; }
   button:disabled { opacity: .6; cursor: progress; }
-  a { color: var(--series-1); }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 12px; }
-  .tile, .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
-  .tile .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
-  .tile .value { font-size: 28px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-  .tile .note { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
-  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; margin-bottom: 12px; }
-  .card h2 { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
-  .card .desc { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  a { color: var(--accent); }
+  .banner { font-size: 14px; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; background: rgba(250,178,25,0.10);
+    border: 1px solid rgba(250,178,25,0.35); color: var(--text-primary); display: none; }
+  .banner.show { display: block; }
+  .msg { font-size: 13px; color: var(--text-secondary); min-height: 18px; margin-bottom: 6px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+  .row1 { display: grid; grid-template-columns: 270px 1fr 360px; gap: 14px; margin-bottom: 14px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 1100px) { .row1 { grid-template-columns: 1fr 1fr; } .row1 .chartcard { grid-column: 1 / -1; order: 3; }
+    .row2 { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .row1, .row2 { grid-template-columns: 1fr; } }
+  .kpis { display: grid; gap: 14px; }
+  .kpi { border-radius: 14px; padding: 16px 18px; border: 1px solid var(--border); }
+  .kpi.a { background: linear-gradient(135deg, rgba(47,182,163,0.30), rgba(47,182,163,0.10)); }
+  .kpi.b { background: linear-gradient(135deg, rgba(208,59,59,0.30), rgba(208,59,59,0.10)); }
+  .kpi.c { background: var(--surface-1); }
+  .kpi .label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+  .kpi .value { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; margin: 2px 0; }
+  .kpi .note { font-size: 13px; color: var(--text-secondary); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+  .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: -1px; }
+  .now { font-size: 14px; background: var(--surface-2); border-radius: 10px; padding: 9px 12px; margin-top: 10px; color: var(--text-primary); }
   svg { display: block; width: 100%; height: auto; overflow: visible; }
   svg text { font-family: inherit; font-size: 11px; fill: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .empty { color: var(--text-muted); font-size: 13px; padding: 36px 0; text-align: center; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
-  th { text-align: left; font-weight: 500; color: var(--text-secondary); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--axis); }
-  td { padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+  .seg { display: flex; gap: 2px; height: 64px; border-radius: 8px; overflow: hidden; margin: 6px 0 12px; }
+  .seg div { display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; min-width: 2px; }
+  .levels { display: grid; gap: 8px; }
+  .level { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: baseline; font-size: 14px; }
+  .level .what { color: var(--text-muted); font-size: 12px; }
+  .level .n { font-variant-numeric: tabular-nums; font-weight: 650; }
+  .alerts { display: grid; gap: 10px; }
+  .alert { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; background: var(--surface-2);
+    border: 1px solid var(--border); border-left: 3px solid var(--critical); border-radius: 10px; padding: 10px 12px; }
+  .alert .ic { width: 34px; height: 34px; border-radius: 8px; background: rgba(208,59,59,0.18); color: #ff8a8a;
+    display: flex; align-items: center; justify-content: center; font-size: 17px; }
+  .alert .t { font-size: 14px; }
+  .alert .s { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  th { text-align: left; font-weight: 600; color: var(--text-primary); font-size: 12.5px; padding: 9px 10px; background: rgba(47,182,163,0.22); }
+  th:first-child { border-radius: 8px 0 0 8px; } th:last-child { border-radius: 0 8px 8px 0; }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
   td.num, th.num { text-align: right; }
-  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .tip { position: fixed; pointer-events: none; background: var(--surface-1); color: var(--text-primary);
-    border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 12px; line-height: 1.45;
-    box-shadow: 0 4px 16px rgba(0,0,0,.12); opacity: 0; transition: opacity .08s; z-index: 10; white-space: nowrap; }
-  .tip b { font-variant-numeric: tabular-nums; }
-  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; }
-  .kv span:nth-child(odd) { color: var(--text-secondary); }
-  .kv span:nth-child(even) { font-variant-numeric: tabular-nums; }
-  .msg { font-size: 12px; color: var(--text-secondary); min-height: 16px; }
-  footer { color: var(--text-muted); font-size: 12px; margin-top: 16px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 650; white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+  .empty { color: var(--text-muted); font-size: 14px; padding: 26px 0; text-align: center; }
+  .health { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .hc { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+  .hc .big { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; }
+  .hc .q { font-size: 14px; font-weight: 650; }
+  .hc .a { font-size: 13px; color: var(--text-secondary); }
+  .glossary { font-size: 13px; color: var(--text-secondary); }
+  .glossary b { color: var(--text-primary); }
+  .glossary ul { margin: 6px 0 0; padding-left: 18px; } .glossary li { margin-bottom: 4px; }
+  .tip { position: fixed; pointer-events: none; background: #0f1a1c; color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 11px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    opacity: 0; transition: opacity .08s; z-index: 10; max-width: 300px; }
+  footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 </style>
 </head>
 <body>
@@ -78,49 +94,79 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>Fraud scoring API · live dashboard</h1>
-      <div class="sub" id="modelLine">Loading…</div>
+      <h1>Card Fraud Monitor</h1>
+      <p class="lead">Every card payment sent to the system is checked automatically. Payments that look suspicious are
+        <b>held for a person to review</b>; the rest are approved straight away.</p>
     </div>
     <div class="controls">
-      <button class="primary" id="sendBtn" title="Scores 50 random transactions from the test period. The batch is fraud-enriched (74 of 400 are frauds), so alert rates are far higher than in real traffic.">Send 50 test transactions</button>
-      <button id="demoBtn">Run /demo</button>
-      <label>Refresh
-        <select id="interval">
-          <option value="5000">5 s</option><option value="10000" selected>10 s</option>
-          <option value="30000">30 s</option><option value="0">off</option>
-        </select>
-      </label>
-      <button id="refreshBtn">Refresh now</button>
-      <a href="/docs">API docs</a>
+      <button class="primary" id="sendBtn">Send 50 practice payments</button>
+      <label>Show <select id="filter">
+        <option value="all" selected>All payments</option>
+        <option value="real">Real payments only</option>
+      </select></label>
+      <label>Update every <select id="interval">
+        <option value="10000" selected>10 s</option><option value="30000">30 s</option><option value="0">never</option>
+      </select></label>
+      <button id="refreshBtn">Update now</button>
     </div>
   </header>
   <div class="msg" id="msg" role="status"></div>
+  <div class="banner" id="banner"></div>
 
-  <section class="tiles" aria-label="Key figures">
-    <div class="tile"><div class="label">Requests recorded</div><div class="value" id="kRequests">–</div><div class="note" id="kRequestsNote"></div></div>
-    <div class="tile"><div class="label">Transactions scored</div><div class="value" id="kTxns">–</div><div class="note" id="kTxnsNote"></div></div>
-    <div class="tile"><div class="label">Alerts (REVIEW)</div><div class="value" id="kAlerts">–</div><div class="note" id="kAlertsNote"></div></div>
-    <div class="tile"><div class="label">Mean fraud probability</div><div class="value" id="kMeanP">–</div><div class="note">training fraud rate 0.0020</div></div>
-    <div class="tile"><div class="label">Scoring latency</div><div class="value" id="kLat">–</div><div class="note" id="kLatNote"></div></div>
-    <div class="tile"><div class="label">Errors (4xx/5xx)</div><div class="value" id="kErr">–</div><div class="note" id="kErrNote"></div></div>
-  </section>
-
-  <section class="grid2">
-    <div class="card"><h2>Requests per minute</h2><div class="desc">All recorded endpoints · last 30 minutes</div><div id="cRpm"></div></div>
-    <div class="card"><h2>Fraud-probability distribution</h2><div class="desc">Scored transactions · log-spaced bins</div><div id="cHist"></div></div>
-  </section>
-  <section class="grid2">
-    <div class="card"><h2>Latency per scoring request (ms)</h2><div class="desc">Last 100 calls to /score and /demo, server-side time</div><div id="cLat"></div></div>
-    <div class="card"><h2>Input drift vs. training (PSI)</h2><div class="desc" id="driftDesc">Top 10 features · needs ≥ 100 sampled transactions (≤ 50 stored per request)</div><div id="cDrift"></div></div>
-  </section>
-  <section class="grid2">
-    <div class="card"><h2>Recent scored transactions</h2><div class="desc">Newest 12 · threshold = €5 / (€5 + amount)</div><div id="tRecent"></div></div>
-    <div class="card">
-      <h2>Model</h2><div class="desc">Deployed decision function</div><div class="kv" id="modelKv"></div>
-      <h2 style="margin-top:16px">Traffic by endpoint</h2><div class="desc">Count, errors and average latency</div><div id="tEndpoints"></div>
+  <div class="row1">
+    <div class="kpis">
+      <div class="kpi a"><div class="label">Payments checked</div><div class="value" id="kChecked">–</div><div class="note" id="kCheckedNote">&nbsp;</div></div>
+      <div class="kpi b"><div class="label">Held for review</div><div class="value" id="kHeld">–</div><div class="note" id="kHeldNote">&nbsp;</div></div>
+      <div class="kpi c"><div class="label">Value held for review</div><div class="value" id="kValue" style="font-size:30px">–</div><div class="note" id="kValueNote">&nbsp;</div></div>
     </div>
-  </section>
-  <footer id="footer"></footer>
+
+    <div class="card chartcard">
+      <h2>When do payments happen?</h2>
+      <p class="desc">Payments by the hour of day they were made, split by what the system decided.</p>
+      <div id="cHours"></div>
+      <div class="legend"><span><span class="sw" style="background:var(--good)"></span>✓ Approved automatically</span>
+        <span><span class="sw" style="background:var(--critical)"></span>⚑ Held for review</span></div>
+      <div class="now" id="nHours">&nbsp;</div>
+    </div>
+
+    <div class="card">
+      <h2>How risky are the payments?</h2>
+      <p class="desc">Every payment gets a risk score: the system's estimated chance that it is fraud.</p>
+      <div class="seg" id="seg"></div>
+      <div class="levels" id="levels"></div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <h2>Payments held for review</h2>
+      <p class="desc">The latest payments the system stopped, and why. A held payment is a suspicion, not proof of fraud.</p>
+      <div class="alerts" id="alerts"></div>
+    </div>
+    <div class="card">
+      <h2>Latest decisions</h2>
+      <p class="desc">The most recent payments checked, newest first.</p>
+      <div id="latest"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <h2>Is the system working properly?</h2>
+    <p class="desc">Quick health checks. <a href="/dashboard/technical">See the technical details →</a></p>
+    <div class="health" id="health"></div>
+  </div>
+
+  <div class="card glossary">
+    <h2>What the words mean</h2>
+    <ul>
+      <li><b>Risk score</b>: the system's estimate of how likely a payment is to be fraud, from 0% (certainly genuine) to 100% (certainly fraud).</li>
+      <li><b>Held for review</b>: the payment is paused until a person checks it. It does not mean the payment is fraud; most held payments in real use turn out to be fraud, but not all.</li>
+      <li><b>Why bigger payments are held at lower risk</b>: missing a fraud costs the whole payment, while a needless check costs about €5 of staff time.
+        So a €1,000 payment is held at about 0.5% risk, but a €5 payment only at about 50%.</li>
+      <li><b>Practice payments</b>: examples from past data that contain far more fraud than normal, used to show the dashboard working.</li>
+    </ul>
+  </div>
+  <footer><span id="footer"></span><span><a href="/dashboard/technical">Technical dashboard</a> · <a href="/docs">API documentation</a></span></footer>
 </div>
 <div class="tip" id="tip" role="tooltip"></div>
 </div>
@@ -128,213 +174,157 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const NS = "http://www.w3.org/2000/svg";
-const fmtInt = (v) => v == null ? "–" : Number(v).toLocaleString();
-const fmtPct = (v, d = 1) => v == null ? "–" : (100 * v).toFixed(d) + "%";
-const fmtP = (v) => v == null ? "–" : (v < 0.001 ? v.toExponential(1) : v.toFixed(4));
-const fmtTime = (ts) => new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const n = (v) => v == null ? "–" : Number(v).toLocaleString();
+const eur = (v) => v == null ? "–" : "€" + Number(v).toLocaleString(undefined, { minimumFractionDigits: v < 1000 ? 2 : 0, maximumFractionDigits: v < 1000 ? 2 : 0 });
+function pct(p) { if (p == null) return "–"; const v = 100 * p; if (v === 0) return "0%"; if (v < 0.1) return "under 0.1%";
+  if (v < 1) return v.toFixed(1) + "%"; if (v >= 99.5) return Math.min(v, 99.9).toFixed(1) + "%"; return v.toFixed(0) + "%"; }
+const share = (a, b) => b ? Math.round((100 * a) / b) + "%" : "–";
+const clock = (ts) => new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+const hourLabel = (h) => h == null ? "–" : `${String(h).padStart(2, "0")}:00–${String((h + 1) % 24).padStart(2, "0")}:00`;
+function ago(ts) { const s = Math.max(0, Date.now() / 1000 - ts); if (s < 60) return "just now";
+  if (s < 3600) return Math.round(s / 60) + " min ago"; if (s < 86400) return Math.round(s / 3600) + " hours ago"; return Math.round(s / 86400) + " days ago"; }
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const STATUS = {
-  stable: { color: "var(--good)", icon: "✓", label: "stable" },
-  investigate: { color: "var(--warning)", icon: "!", label: "investigate" },
-  ALERT: { color: "var(--critical)", icon: "✕", label: "alert" },
-  REVIEW: { color: "var(--critical)", icon: "⚑", label: "REVIEW" },
-  APPROVE: { color: "var(--good)", icon: "✓", label: "APPROVE" },
-};
-const chip = (key) => { const s = STATUS[key]; return `<span class="chip"><span class="dot" style="background:${s.color}"></span>${s.icon} ${s.label}</span>`; };
+const LEVELS = [
+  { key: "low", name: "Low risk", what: "below 1%: looks genuine", color: "var(--good)", icon: "✓" },
+  { key: "med", name: "Medium risk", what: "1–10%", color: "var(--warning)", icon: "!" },
+  { key: "high", name: "High risk", what: "10–50%", color: "var(--serious)", icon: "!!" },
+  { key: "vhigh", name: "Very high risk", what: "50% or more: looks like fraud", color: "var(--critical)", icon: "⚑" },
+];
+const levelOf = (p) => p < 0.01 ? LEVELS[0] : p < 0.1 ? LEVELS[1] : p < 0.5 ? LEVELS[2] : LEVELS[3];
+const levelChip = (p) => { const l = levelOf(p); return `<span class="chip"><span class="dot" style="background:${l.color}"></span>${l.name}</span>`; };
+const decisionChip = (d) => d === "REVIEW"
+  ? `<span class="chip"><span class="dot" style="background:var(--critical)"></span>⚑ Held</span>`
+  : `<span class="chip"><span class="dot" style="background:var(--good)"></span>✓ Approved</span>`;
 
-// ---------- tooltip ----------
 const tip = $("tip");
-function showTip(ev, html) {
-  tip.innerHTML = html; tip.style.opacity = 1;
-  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
-  let x = ev.clientX + pad, y = ev.clientY - h - pad;
-  if (x + w > innerWidth - 8) x = ev.clientX - w - pad;
-  if (y < 8) y = ev.clientY + pad;
-  tip.style.left = x + "px"; tip.style.top = y + "px";
-}
+function showTip(ev, html) { tip.innerHTML = html; tip.style.opacity = 1; const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY - h - 14; if (x + w > innerWidth - 8) x = ev.clientX - w - 14; if (y < 8) y = ev.clientY + 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px"; }
 const hideTip = () => { tip.style.opacity = 0; };
-
-function el(tag, attrs = {}, parent) {
-  const n = document.createElementNS(NS, tag);
-  for (const k in attrs) n.setAttribute(k, attrs[k]);
-  if (parent) parent.appendChild(n);
-  return n;
-}
-function niceMax(v) { if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p;
-  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }
-// bar with a 4px rounded data-end, square at the baseline
-function vBarPath(x, y, w, h, r = 4) { r = Math.min(r, w / 2, h); if (h <= 0) return "";
+function el(tag, attrs = {}, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function niceTicks(max) { let step = 1;
+  while (Math.ceil(max / step) > 5) step = [1, 2, 5].map((k) => k * Math.pow(10, Math.floor(Math.log10(step)))).concat(10 * Math.pow(10, Math.floor(Math.log10(step)))).find((c) => c > step);
+  const k = Math.max(1, Math.ceil(max / step)); return { step, k, top: k * step }; }
+function barPath(x, y, w, h, r = 3) { r = Math.min(r, w / 2, h); if (h <= 0) return "";
   return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
-function hBarPath(x, y, w, h, r = 4) { r = Math.min(r, h / 2, w); if (w <= 0) return "";
-  return `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}H${x}Z`; }
 
-// ---------- vertical bar chart ----------
-function barChart(container, data, { xLabel = (d) => d.label, tipHtml, labelEvery = 1, ariaLabel }) {
-  container.innerHTML = "";
-  const W = 560, H = 210, m = { t: 10, r: 8, b: 34, l: 40 };
-  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": ariaLabel }, container);
-  const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const max = niceMax(Math.max(...data.map((d) => d.value), 0));
-  for (let i = 0; i <= 4; i++) {
-    const v = (max * i) / 4, y = m.t + ih - (ih * i) / 4;
-    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: i === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 }, svg);
-    const t = el("text", { x: m.l - 6, y: y + 4, "text-anchor": "end" }, svg); t.textContent = Number.isInteger(v) ? v : v.toFixed(1);
-  }
-  const band = iw / data.length, bw = Math.max(2, Math.min(36, band - 2));
-  data.forEach((d, i) => {
-    const x = m.l + i * band + (band - bw) / 2, h = (ih * d.value) / max, y = m.t + ih - h;
-    if (d.value > 0) el("path", { d: vBarPath(x, y, bw, h), fill: "var(--series-1)" }, svg);
-    const hit = el("rect", { x: m.l + i * band, y: m.t, width: band, height: ih, fill: "transparent" }, svg);
-    hit.addEventListener("mousemove", (ev) => { hit.setAttribute("fill", "var(--wash)"); showTip(ev, tipHtml(d)); });
-    hit.addEventListener("mouseleave", () => { hit.setAttribute("fill", "transparent"); hideTip(); });
-    if (i % labelEvery === 0 || i === data.length - 1) {
-      const t = el("text", { x: m.l + i * band + band / 2, y: H - m.b + 16, "text-anchor": "middle" }, svg);
-      t.textContent = xLabel(d);
-    }
-  });
-}
-
-// ---------- line chart with crosshair ----------
-function lineChart(container, pts, ariaLabel) {
-  container.innerHTML = "";
-  if (!pts.length) { container.innerHTML = '<div class="empty">No scoring requests yet. Press “Send 50 test transactions”.</div>'; return; }
-  const W = 560, H = 210, m = { t: 10, r: 10, b: 34, l: 44 };
-  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": ariaLabel }, container);
-  const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const max = niceMax(Math.max(...pts.map((p) => p.ms)));
-  const X = (i) => m.l + (pts.length === 1 ? iw / 2 : (iw * i) / (pts.length - 1));
-  const Y = (v) => m.t + ih - (ih * v) / max;
-  for (let i = 0; i <= 4; i++) {
-    const v = (max * i) / 4, y = Y(v);
-    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: i === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 }, svg);
-    const t = el("text", { x: m.l - 6, y: y + 4, "text-anchor": "end" }, svg); t.textContent = Math.round(v);
-  }
-  [0, pts.length - 1].forEach((i) => { const t = el("text", { x: X(i), y: H - m.b + 16, "text-anchor": i ? "end" : "start" }, svg); t.textContent = fmtTime(pts[i].ts); });
-  el("polyline", { points: pts.map((p, i) => `${X(i)},${Y(p.ms)}`).join(" "), fill: "none", stroke: "var(--series-1)",
-    "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
-  if (pts.length === 1) el("circle", { cx: X(0), cy: Y(pts[0].ms), r: 4, fill: "var(--series-1)" }, svg);
-  const cross = el("line", { y1: m.t, y2: m.t + ih, stroke: "var(--axis)", "stroke-width": 1, opacity: 0 }, svg);
-  const dot = el("circle", { r: 4.5, fill: "var(--series-1)", stroke: "var(--surface-1)", "stroke-width": 2, opacity: 0 }, svg);
-  const hit = el("rect", { x: m.l, y: m.t, width: iw, height: ih, fill: "transparent" }, svg);
-  hit.addEventListener("mousemove", (ev) => {
-    const r = svg.getBoundingClientRect(), sx = ((ev.clientX - r.left) / r.width) * W;
-    const i = Math.max(0, Math.min(pts.length - 1, Math.round(((sx - m.l) / iw) * (pts.length - 1))));
-    const p = pts[i]; cross.setAttribute("x1", X(i)); cross.setAttribute("x2", X(i)); cross.setAttribute("opacity", 1);
-    dot.setAttribute("cx", X(i)); dot.setAttribute("cy", Y(p.ms)); dot.setAttribute("opacity", 1);
-    showTip(ev, `${fmtTime(p.ts)} · ${esc(p.path)}<br><b>${p.ms} ms</b> · ${p.n} transaction${p.n === 1 ? "" : "s"}`);
-  });
-  hit.addEventListener("mouseleave", () => { cross.setAttribute("opacity", 0); dot.setAttribute("opacity", 0); hideTip(); });
-}
-
-// ---------- drift: horizontal bars + status ----------
-function driftChart(container, drift) {
-  container.innerHTML = "";
-  if (!drift) { container.innerHTML = '<div class="empty">Not enough sampled transactions yet (need ≥ 100: press “Send 50 test transactions” twice).</div>'; return; }
-  const rows = drift.features, W = 560, rowH = 20, m = { t: 6, r: 110, b: 26, l: 76 };
-  const H = m.t + rows.length * rowH + m.b, iw = W - m.l - m.r;
-  const max = Math.min(1, Math.max(0.3, niceMax(Math.max(...rows.map((r) => r.psi)))));   // cap: PSI > 1 is "off the scale"
-  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "PSI by feature" }, container);
-  const X = (v) => m.l + (iw * Math.min(v, max)) / max;
-  [0.10, 0.25].forEach((v) => {
-    el("line", { x1: X(v), x2: X(v), y1: m.t, y2: H - m.b, stroke: "var(--axis)", "stroke-dasharray": "3 3" }, svg);
-    const t = el("text", { x: X(v), y: H - m.b + 14, "text-anchor": "middle" }, svg); t.textContent = v.toFixed(2);
-  });
-  const et = el("text", { x: m.l + iw, y: H - m.b + 14, "text-anchor": "end" }, svg); et.textContent = max.toFixed(2) + (max === 1 ? "+" : "");
+// grouped bars per hour: approved vs held
+function hoursChart(box, rows) {
+  box.innerHTML = "";
+  const total = rows.reduce((a, r) => a + r.approved + r.review, 0);
+  if (!total) { box.innerHTML = '<div class="empty">No payments checked yet.</div>'; return; }
+  const W = 640, H = 220, m = { t: 10, r: 6, b: 28, l: 34 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Payments by hour of day" }, box);
+  const { step, k, top } = niceTicks(Math.max(...rows.map((r) => Math.max(r.approved, r.review))));
+  for (let i = 0; i <= k; i++) { const v = i * step, y = m.t + ih - (ih * v) / top;
+    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: i ? "var(--grid)" : "var(--axis)" }, svg);
+    const t = el("text", { x: m.l - 6, y: y + 4, "text-anchor": "end" }, svg); t.textContent = v.toLocaleString(); }
+  const band = iw / 24, bw = Math.max(2, (band - 4) / 2 - 1);
   rows.forEach((r, i) => {
-    const y = m.t + i * rowH, bh = 12, over = r.psi > max;
-    const lt = el("text", { x: m.l - 8, y: y + bh - 1, "text-anchor": "end" }, svg); lt.textContent = r.feature; lt.style.fill = "var(--text-secondary)";
-    el("path", { d: hBarPath(m.l, y, Math.max(1, X(r.psi) - m.l), bh), fill: "var(--series-1)" }, svg);
-    if (over) el("path", { d: `M${X(r.psi) + 3},${y + 1}l5,${bh / 2 - 1}l-5,${bh / 2 - 1}`, fill: "none", stroke: "var(--series-1)", "stroke-width": 2 }, svg);
-    const s = STATUS[r.status];
-    const vt = el("text", over ? { x: X(r.psi) - 6, y: y + bh - 2, "text-anchor": "end" } : { x: X(r.psi) + 6, y: y + bh - 1 }, svg);
-    vt.textContent = r.psi.toFixed(3); vt.style.fill = over ? "#ffffff" : "var(--text-primary)";
-    el("circle", { cx: W - m.r + 52, cy: y + bh / 2, r: 4, fill: s.color }, svg);
-    const st = el("text", { x: W - m.r + 60, y: y + bh - 1 }, svg); st.textContent = `${s.icon} ${s.label}`; st.style.fill = "var(--text-secondary)";
-    const hit = el("rect", { x: 0, y: y - 4, width: W, height: rowH, fill: "transparent" }, svg);
-    hit.addEventListener("mousemove", (ev) => showTip(ev, `<b>${esc(r.feature)}</b><br>PSI ${r.psi.toFixed(3)} · ${s.label}`));
-    hit.addEventListener("mouseleave", hideTip);
+    const x0 = m.l + i * band + 2;
+    [[r.approved, "var(--good)", 0], [r.review, "var(--critical)", 1]].forEach(([v, c, j]) => {
+      const h = (ih * v) / top; if (v > 0) el("path", { d: barPath(x0 + j * (bw + 2), m.t + ih - h, bw, h), fill: c }, svg); });
+    const hit = el("rect", { x: m.l + i * band, y: m.t, width: band, height: ih, fill: "transparent" }, svg);
+    hit.addEventListener("mousemove", (ev) => { hit.setAttribute("fill", "var(--wash)");
+      showTip(ev, `<b>${hourLabel(r.hour)}</b><br>✓ ${n(r.approved)} approved · ⚑ ${n(r.review)} held`); });
+    hit.addEventListener("mouseleave", () => { hit.setAttribute("fill", "transparent"); hideTip(); });
+    if (i % 3 === 0) { const t = el("text", { x: m.l + i * band + band / 2, y: H - m.b + 16, "text-anchor": "middle" }, svg);
+      t.textContent = String(r.hour).padStart(2, "0") + ":00"; }
   });
-  $("driftDesc").textContent = `Top 10 of 31 features · ${drift.n.toLocaleString()} sampled transactions (≤ 50 stored per request) · ` +
-    `${drift.alerts} alert, ${drift.investigate} investigate (>0.25 alert, 0.10–0.25 investigate). ` +
-    `Hour features always shift when traffic covers only part of the day.`;
 }
 
-// ---------- render ----------
 function render(d) {
-  const t = d.totals, m = d.model;
-  $("modelLine").textContent = `${m.name} + Platt calibration · policy: ${m.policy} · false-alarm cost €${m.c_fp}`;
-  $("kRequests").textContent = fmtInt(t.requests);
-  $("kRequestsNote").textContent = t.first_ts ? `since ${new Date(t.first_ts * 1000).toLocaleString()}` : "no traffic yet";
-  $("kTxns").textContent = fmtInt(t.transactions);
-  $("kTxnsNote").textContent = `${fmtInt(t.scoring_requests)} scoring request${t.scoring_requests === 1 ? "" : "s"}`;
-  $("kAlerts").textContent = fmtInt(t.alerts);
-  $("kAlertsNote").textContent = t.alert_rate == null ? "alert rate –" : `alert rate ${fmtPct(t.alert_rate, 2)}`;
-  $("kMeanP").textContent = fmtP(t.mean_p);
-  $("kLat").textContent = t.latency_avg_ms == null ? "–" : `${Math.round(t.latency_avg_ms)} ms`;
-  $("kLatNote").textContent = t.latency_p95_ms == null ? "average · p95 –" : `average · p95 ${Math.round(t.latency_p95_ms)} ms`;
-  $("kErr").textContent = fmtInt(t.errors);
-  $("kErrNote").textContent = t.requests ? `${fmtPct(t.errors / t.requests)} of requests` : "";
+  const t = d.totals, real = !d.filter.include_test, ref = d.reference || {};
+  const mix = d.traffic_mix || [], practice = mix.filter((r) => r.source !== "api").reduce((a, r) => a + r.transactions, 0);
+  const banner = $("banner");
+  if (!real && practice) { banner.className = "banner show";
+    banner.innerHTML = `<b>Includes ${n(practice)} practice payments.</b> These come from past data with far more fraud than normal (about 18% instead of 0.2%), ` +
+      `so many more payments are held than you would see in real use. Choose <b>Show → Real payments only</b> to hide them.`;
+  } else if (real) { banner.className = "banner show"; banner.innerHTML = "<b>Showing real payments only</b> (practice payments are hidden)."; }
+  else banner.className = "banner";
 
-  const rpm = d.requests_per_minute.map((r) => ({ label: fmtTime(r.t).slice(0, 5), value: r.count, t: r.t }));
-  barChart($("cRpm"), rpm, { labelEvery: 6, ariaLabel: "Requests per minute",
-    tipHtml: (r) => `minute ending ${fmtTime(r.t).slice(0, 5)}<br><b>${r.value}</b> request${r.value === 1 ? "" : "s"}` });
-  if (t.transactions) {
-    barChart($("cHist"), d.probability_hist.map((h) => ({ label: h.bin, value: h.count })), { ariaLabel: "Fraud probability histogram",
-      tipHtml: (h) => `P(fraud) ${esc(h.label)}<br><b>${h.value.toLocaleString()}</b> transaction${h.value === 1 ? "" : "s"} · ${fmtPct(h.value / t.transactions)}` });
-  } else { $("cHist").innerHTML = '<div class="empty">No scored transactions yet.</div>'; }
-  lineChart($("cLat"), d.latency_series, "Latency per scoring request");
-  driftChart($("cDrift"), d.drift);
+  // KPIs
+  $("kChecked").textContent = n(t.transactions);
+  $("kCheckedNote").textContent = t.transactions ? `worth ${eur(t.amount_total)} in total` : "no payments yet";
+  $("kHeld").textContent = n(t.alerts);
+  $("kHeldNote").textContent = t.transactions ? `${share(t.alerts, t.transactions)} of payments` + (ref.test_alert_rate != null ? ` (usually about ${(100 * ref.test_alert_rate).toFixed(1)}%)` : "") : " ";
+  $("kValue").textContent = eur(t.amount_review);
+  $("kValueNote").textContent = t.amount_total ? `${share(t.amount_review, t.amount_total)} of the money checked is waiting for a person` : " ";
 
-  $("tRecent").innerHTML = d.recent.length ? `<table><thead><tr><th>Time</th><th class="num">Amount</th><th class="num">P(fraud)</th>
-    <th class="num">Threshold</th><th>Decision</th></tr></thead><tbody>${d.recent.slice(0, 12).map((r) => `<tr><td>${fmtTime(r.ts)}</td>
-    <td class="num">€${r.amount.toFixed(2)}</td><td class="num">${fmtP(r.p)}</td><td class="num">${r.t.toFixed(4)}</td>
-    <td>${chip(r.d)}</td></tr>`).join("")}</tbody></table>` : '<div class="empty">No scored transactions yet.</div>';
+  // hours
+  hoursChart($("cHours"), d.by_hour);
+  const byHour = d.by_hour, tot = byHour.reduce((a, r) => a + r.approved + r.review, 0);
+  if (tot) {
+    const busiest = byHour.reduce((a, r) => (r.approved + r.review > a.approved + a.review ? r : a));
+    const held = byHour.filter((r) => r.review > 0);
+    const worst = held.length ? held.reduce((a, r) => (r.review / (r.approved + r.review) > a.review / (a.approved + a.review) ? r : a)) : null;
+    const night = byHour.filter((r) => r.hour < 6).reduce((a, r) => a + r.approved + r.review, 0);
+    $("nHours").innerHTML = `Busiest hour: <b>${hourLabel(busiest.hour)}</b> (${n(busiest.approved + busiest.review)} payments).` +
+      (worst ? ` The highest share held was at <b>${hourLabel(worst.hour)}</b>: ${worst.review} of ${worst.approved + worst.review} payments.` : " No payments held yet.") +
+      (night === 0 ? " No night-time payments yet; in the full data, fraud is most common between 01:00 and 06:00." : "");
+  } else $("nHours").textContent = "Send some payments to see when they happen.";
 
-  const tm = m.test_metrics;
-  $("modelKv").innerHTML = [["Model", m.name], ["Decision rule", m.policy], ["Test PR-AUC", tm["PR-AUC"].toFixed(3)],
-    ["Test recall", fmtPct(tm.recall)], ["Test precision", fmtPct(tm.precision)], ["Losses avoided (test)", tm["saving %"].toFixed(1) + "%"],
-    ["scikit-learn", m.sklearn], ["Trained", m.created]].map(([k, v]) => `<span>${esc(k)}</span><span>${esc(v)}</span>`).join("");
-  $("tEndpoints").innerHTML = d.by_endpoint.length ? `<table><thead><tr><th>Endpoint</th><th class="num">Requests</th>
-    <th class="num">Errors</th><th class="num">Avg ms</th></tr></thead><tbody>${d.by_endpoint.map((r) => `<tr><td>${esc(r.endpoint)}</td>
-    <td class="num">${r.count}</td><td class="num">${r.errors}</td><td class="num">${r.avg_ms}</td></tr>`).join("")}</tbody></table>`
-    : '<div class="empty">No traffic yet.</div>';
-  $("footer").textContent = `Updated ${new Date(d.generated * 1000).toLocaleTimeString()} · the dashboard's own requests are not counted`;
+  // risk levels (exact counts from the score bands)
+  const hcount = d.probability_hist.map((h) => h.count);
+  const counts = [hcount[0] + hcount[1] + hcount[2], hcount[3], hcount[4], hcount[5]];
+  const sumc = counts.reduce((a, b) => a + b, 0);
+  $("seg").innerHTML = sumc ? LEVELS.map((l, i) => counts[i] ? `<div style="flex:${Math.max(counts[i] / sumc, 0.02)};background:${l.color}"
+      title="${l.name}: ${counts[i]} (${share(counts[i], sumc)})">${counts[i] / sumc >= 0.08 ? share(counts[i], sumc) : ""}</div>` : "").join("")
+    : `<div style="flex:1;background:var(--surface-2);color:var(--text-muted);font-weight:500">No payments yet</div>`;
+  $("levels").innerHTML = LEVELS.map((l, i) => `<div class="level"><span class="chip"><span class="dot" style="background:${l.color}"></span>${l.icon} ${l.name}</span>
+      <span class="what">${l.what}</span><span class="n">${n(counts[i])} <span class="what">(${share(counts[i], sumc)})</span></span></div>`).join("");
+
+  // held payments
+  $("alerts").innerHTML = d.recent_alerts && d.recent_alerts.length ? d.recent_alerts.slice(0, 4).map((a) => `
+    <div class="alert"><div class="ic">⚑</div><div>
+      <div class="t"><b>${eur(a.amount)}</b> payment made ${a.hour != null ? `at ${hourLabel(a.hour)}` : ""}: <b>${pct(a.p)}</b> risk of fraud</div>
+      <div class="s">Held because its risk is above the ${pct(a.t)} limit for a payment of this size · checked ${ago(a.ts)}</div>
+    </div></div>`).join("")
+    : '<div class="empty">No payments held for review yet.</div>';
+
+  // latest decisions
+  $("latest").innerHTML = d.recent.length ? `<table><thead><tr><th>Checked</th><th class="num">Amount</th><th>Risk</th><th>Decision</th><th>In plain words</th></tr></thead><tbody>` +
+    d.recent.slice(0, 7).map((r) => `<tr><td>${clock(r.ts)}</td><td class="num">${eur(r.amount)}</td><td>${levelChip(r.p)}</td><td>${decisionChip(r.d)}</td>
+      <td style="color:var(--text-secondary);font-size:12.5px">${r.d === "REVIEW" ? `Risk ${pct(r.p)} is above the ${pct(r.t)} limit` : `Risk ${pct(r.p)} is below the ${pct(r.t)} limit`}</td></tr>`).join("") +
+    `</tbody></table>` : '<div class="empty">No payments checked yet.</div>';
+
+  // health
+  const hc = (ok, mark, q, a) => `<div class="hc"><div class="big" style="background:${ok === true ? "var(--good)" : ok === false ? "var(--warning)" : "var(--axis)"}">${mark}</div><div><div class="q">${q}</div><div class="a">${a}</div></div></div>`;
+  const dr = d.drift;
+  $("health").innerHTML =
+    hc(true, "✓", "The system is online", t.requests ? `It has answered ${n(t.requests)} requests; the last one ${ago(t.last_ts)}.` : "Ready. No requests yet.") +
+    hc(t.latency_avg_ms == null ? null : t.latency_p95_ms < 500, t.latency_avg_ms == null ? "–" : t.latency_p95_ms < 500 ? "✓" : "!",
+       t.latency_avg_ms == null ? "Speed: not measured yet" : t.latency_p95_ms < 500 ? "Decisions are fast" : "Decisions are slower than they should be",
+       t.latency_avg_ms == null ? "Send some payments to measure it." : `A typical check takes about ${Math.max(0.01, t.latency_avg_ms / 1000).toFixed(2)} seconds, well within what a card payment allows.`) +
+    hc(t.server_errors === 0 ? true : t.requests ? false : null, t.server_errors === 0 ? "✓" : "!", t.server_errors ? "Some checks failed" : "No failed checks",
+       t.server_errors ? `${t.server_errors} requests failed. The technical team should look at the logs.` : (t.client_errors ? `${t.client_errors} badly formatted request${t.client_errors === 1 ? " was" : "s were"} turned away, which is correct.` : "Every request was handled.")) +
+    hc(dr ? (dr.alerts === 0) : null, dr ? (dr.alerts === 0 ? "✓" : "!") : "–", dr ? (dr.alerts === 0 ? "Payments look like usual" : "Payments look different from usual") : "Too early to compare with usual payments",
+       dr ? (dr.alerts === 0 ? "Recent payments resemble the ones the system learned from." :
+            `Recent payments differ from the ones the system learned from${!real && practice ? " (expected: the practice payments come from a different day)" : ""}. If this continues with real payments, the system should be re-checked.`)
+          : "Needs at least 100 payments.");
+
+  $("footer").textContent = `Last updated ${new Date(d.generated * 1000).toLocaleTimeString()} · opening this page does not count as a payment`;
 }
 
 async function load(fresh = false) {
-  try {
-    const r = await fetch("/metrics" + (fresh === true ? "?fresh=true" : ""), { cache: "no-store" });
-    if (!r.ok) throw new Error(r.status);
-    render(await r.json());
-  } catch (e) { $("msg").textContent = "Could not load /metrics (" + e.message + "). Retrying…"; }
+  const q = new URLSearchParams({ include_test: $("filter").value !== "real" }); if (fresh === true) q.set("fresh", "true");
+  try { const r = await fetch("/metrics?" + q, { cache: "no-store" }); if (!r.ok) throw new Error(r.status); render(await r.json()); }
+  catch (e) { $("msg").textContent = "Could not load the latest figures (" + e.message + "). Trying again…"; }
 }
-
-// ---------- actions ----------
 $("sendBtn").addEventListener("click", async () => {
-  const b = $("sendBtn"); b.disabled = true; $("msg").textContent = "Sending 50 test transactions…";
+  const b = $("sendBtn"); b.disabled = true; $("msg").textContent = "Sending 50 practice payments…";
   try {
     const rows = await (await fetch("/sample-batch?n=50")).json();
-    const res = await fetch("/score", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rows) });
-    const out = await res.json();
-    const n = Array.isArray(out) ? out.filter((o) => o.decision === "REVIEW").length : 0;
-    $("msg").textContent = res.ok ? `Scored ${rows.length} test transactions: ${n} flagged for REVIEW. (The test batch is fraud-enriched, about 18% fraud vs 0.17% in real traffic.)` : `Request failed (${res.status}).`;
-  } catch (e) { $("msg").textContent = "Request failed: " + e.message; }
-  b.disabled = false; setTimeout(() => load(true), 300);
-  // on Modal the telemetry write happens in the background; refresh once more shortly after
-  setTimeout(() => load(true), 2000);
-});
-$("demoBtn").addEventListener("click", async () => {
-  const r = await fetch("/demo"); $("msg").textContent = r.ok ? "Ran /demo (5 transactions)." : `/demo failed (${r.status}).`;
-  setTimeout(() => load(true), 300); setTimeout(() => load(true), 2000);
+    const res = await fetch("/score", { method: "POST", headers: { "Content-Type": "application/json", "X-Traffic-Source": "dashboard-test" }, body: JSON.stringify(rows) });
+    const out = await res.json(); const held = Array.isArray(out) ? out.filter((o) => o.decision === "REVIEW").length : 0;
+    $("msg").textContent = res.ok ? `Checked 50 practice payments: ${held} held for review, ${50 - held} approved.` : `Something went wrong (${res.status}).`;
+  } catch (e) { $("msg").textContent = "Something went wrong: " + e.message; }
+  b.disabled = false; setTimeout(() => load(true), 300); setTimeout(() => load(true), 2000);
 });
 $("refreshBtn").addEventListener("click", () => load(true));
-
+$("filter").addEventListener("change", () => load(true));
 let timer = null;
-function schedule() {
-  clearInterval(timer);
-  const ms = Number($("interval").value);
-  if (ms > 0 && document.visibilityState === "visible") timer = setInterval(load, ms);
-}
+function schedule() { clearInterval(timer); const ms = Number($("interval").value); if (ms > 0 && document.visibilityState === "visible") timer = setInterval(load, ms); }
 $("interval").addEventListener("change", schedule);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); schedule(); });
 load(); schedule();
