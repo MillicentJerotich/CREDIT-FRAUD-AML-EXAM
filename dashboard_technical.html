@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fraud API · Technical dashboard</title>
+<link rel="icon" href="data:,">
+<style>
+  .viz-root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface-1: #fcfcfb; --border: rgba(11,11,11,0.10);
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --series-1: #2a78d6;
+    --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b; --info: #898781;
+    --wash: rgba(42,120,214,0.08); --note-bg: #f0efec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface-1: #1a1a19; --border: rgba(255,255,255,0.10);
+      --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --series-1: #3987e5;
+      --wash: rgba(57,135,229,0.14); --note-bg: #262624;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface-1: #1a1a19; --border: rgba(255,255,255,0.10);
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --series-1: #3987e5;
+    --wash: rgba(57,135,229,0.14); --note-bg: #262624;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--page);
+    color: var(--text-primary); min-height: 100vh; padding: 24px; line-height: 1.45; }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  h1 { font-size: 22px; margin: 0 0 4px; font-weight: 650; }
+  h2 { font-size: 15px; font-weight: 650; margin: 0 0 2px; }
+  h3 { font-size: 13px; font-weight: 600; margin: 0 0 6px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
+  .sub { color: var(--text-secondary); font-size: 14px; max-width: 720px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--text-secondary); }
+  button, select { font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-1); color: var(--text-primary); cursor: pointer; }
+  button.primary { background: var(--series-1); color: #fff; border-color: transparent; }
+  button:disabled { opacity: .6; cursor: progress; }
+  a { color: var(--series-1); }
+  section { margin-bottom: 14px; }
+  .card, .tile, .check { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .help { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; font-size: 14px; margin-bottom: 14px; }
+  .help summary { cursor: pointer; font-weight: 600; }
+  .help ul { margin: 8px 0 4px; padding-left: 20px; color: var(--text-secondary); }
+  .help li { margin-bottom: 4px; }
+  .mixbar { font-size: 13px; color: var(--text-secondary); background: var(--note-bg); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; }
+  .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .check .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .check .q { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+  .check .ans { font-size: 14px; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 650; white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .tile .label { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+  .tile .value { font-size: 28px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .tile .note { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 12px; }
+  .card .desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+  .card .now { font-size: 13px; background: var(--note-bg); border-radius: 8px; padding: 7px 10px; margin-top: 8px; }
+  .card .now b { font-weight: 650; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  svg text { font-family: inherit; font-size: 11px; fill: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .empty { color: var(--text-muted); font-size: 13px; padding: 30px 0; text-align: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th { text-align: left; font-weight: 500; color: var(--text-secondary); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--axis); }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  td.num, th.num { text-align: right; }
+  td.why { color: var(--text-secondary); font-size: 12px; }
+  .tip { position: fixed; pointer-events: none; background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 12px; line-height: 1.45;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); opacity: 0; transition: opacity .08s; z-index: 10; max-width: 320px; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; }
+  .kv span:nth-child(odd) { color: var(--text-secondary); }
+  .kv span:nth-child(even) { font-variant-numeric: tabular-nums; }
+  .msg { font-size: 13px; color: var(--text-secondary); min-height: 18px; margin-bottom: 8px; }
+  footer { color: var(--text-muted); font-size: 12px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Fraud scoring API · technical dashboard</h1>
+      <div class="sub">Watches the deployed fraud model while it is being used: is it up, is it fast, what is it deciding,
+        and does the incoming data still look like the data it was trained on?</div>
+    </div>
+    <div class="controls">
+      <button class="primary" id="sendBtn">Send 50 test transactions</button>
+      <button id="demoBtn">Run /demo</button>
+      <label>Show <select id="filter">
+        <option value="all" selected>All traffic</option>
+        <option value="real">Real API calls only</option>
+      </select></label>
+      <label>Refresh <select id="interval">
+        <option value="5000">5 s</option><option value="10000" selected>10 s</option>
+        <option value="30000">30 s</option><option value="0">off</option>
+      </select></label>
+      <button id="refreshBtn">Refresh now</button>
+      <a href="/dashboard">← Plain-language view</a>
+      <a href="/docs">API docs</a>
+    </div>
+  </header>
+  <div class="msg" id="msg" role="status"></div>
+
+  <details class="help" id="help">
+    <summary>How to read this dashboard</summary>
+    <ul>
+      <li><b>Every time the API is used, it is recorded here</b>: calls to <code>/score</code>, <code>/demo</code>, <code>/health</code> and so on. Opening this page does not count.</li>
+      <li>The model gives each transaction a <b>fraud score</b> (its estimated chance of fraud) and decides <b>APPROVE</b> or <b>REVIEW</b>.
+        A transaction goes to REVIEW when its score is above <b>€5 ÷ (€5 + amount)</b>, so expensive transactions are checked at much lower scores than small ones.</li>
+      <li><b>Test traffic is not like real traffic.</b> The “Send 50 test transactions” button and <code>/demo</code> use samples that contain far more fraud
+        (about 18% and 40%) than real card traffic (about 0.2%). Their alert rates and scores look high on purpose. Choose <b>Show → Real API calls only</b> to hide them.</li>
+      <li><b>Drift</b> asks whether recent inputs look like the training data. The two time-of-day features always change when traffic covers only part of the day, so they are shown but not counted as problems.</li>
+    </ul>
+  </details>
+
+  <div class="mixbar" id="mix">Loading…</div>
+
+  <section>
+    <h3>At a glance</h3>
+    <div class="checks">
+      <div class="check"><div class="head"><span class="q">Is it running?</span><span id="sUp"></span></div><div class="ans" id="aUp">–</div></div>
+      <div class="check"><div class="head"><span class="q">Is it fast?</span><span id="sFast"></span></div><div class="ans" id="aFast">–</div></div>
+      <div class="check"><div class="head"><span class="q">Any failures?</span><span id="sErr"></span></div><div class="ans" id="aErr">–</div></div>
+      <div class="check"><div class="head"><span class="q">What is it deciding?</span><span id="sDec"></span></div><div class="ans" id="aDec">–</div></div>
+      <div class="check"><div class="head"><span class="q">Does the data look normal?</span><span id="sDrift"></span></div><div class="ans" id="aDrift">–</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Numbers</h3>
+    <div class="tiles">
+      <div class="tile"><div class="label">API calls</div><div class="value" id="kRequests">–</div><div class="note" id="kRequestsNote">requests received</div></div>
+      <div class="tile"><div class="label">Transactions scored</div><div class="value" id="kTxns">–</div><div class="note" id="kTxnsNote"></div></div>
+      <div class="tile"><div class="label">Sent to REVIEW</div><div class="value" id="kAlerts">–</div><div class="note" id="kAlertsNote"></div></div>
+      <div class="tile"><div class="label">Average fraud score</div><div class="value" id="kMeanP">–</div><div class="note">model's average estimated chance of fraud</div></div>
+      <div class="tile"><div class="label">Response time</div><div class="value" id="kLat">–</div><div class="note" id="kLatNote"></div></div>
+      <div class="tile"><div class="label">Failed calls</div><div class="value" id="kErr">–</div><div class="note" id="kErrNote"></div></div>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="card"><h2>How busy is the API?</h2>
+      <div class="desc">API calls per minute over the last 30 minutes (all endpoints).</div>
+      <div id="cRpm"></div><div class="now" id="nRpm"></div></div>
+    <div class="card"><h2>How suspicious are the transactions?</h2>
+      <div class="desc">Transactions grouped by fraud score. Genuine card traffic sits almost entirely in the left-hand bars; the right-hand bar (50% or more) is where most frauds land.</div>
+      <div id="cHist"></div><div class="now" id="nHist"></div></div>
+  </section>
+  <section class="grid2">
+    <div class="card"><h2>How long does scoring take?</h2>
+      <div class="desc">Server time for each call to <code>/score</code> or <code>/demo</code>, in milliseconds. Under 500 ms is comfortable for a card payment check.</div>
+      <div id="cLat"></div><div class="now" id="nLat"></div></div>
+    <div class="card"><h2>Does incoming data still look like the training data?</h2>
+      <div class="desc">Drift score (PSI) per input feature, comparing recent transactions with the training data:
+        below 0.10 similar · 0.10–0.25 some change · above 0.25 clearly different. Top 10 shown.</div>
+      <div id="cDrift"></div><div class="now" id="nDrift"></div></div>
+  </section>
+  <section class="grid2">
+    <div class="card"><h2>Latest decisions, and why</h2>
+      <div class="desc">Newest first. REVIEW when fraud score ≥ threshold, where threshold = €5 ÷ (€5 + amount).</div>
+      <div id="tRecent"></div></div>
+    <div class="card">
+      <h2>The model behind it</h2><div class="desc">What is deployed and how well it did on unseen test data (newest 20% of the dataset).</div>
+      <div class="kv" id="modelKv"></div>
+      <h2 style="margin-top:16px">Calls by endpoint</h2><div class="desc">How often each part of the API was used.</div>
+      <div id="tEndpoints"></div>
+    </div>
+  </section>
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const fmtInt = (v) => v == null ? "–" : Number(v).toLocaleString();
+// probabilities as percentages, readable at every size
+function pct(p) {
+  if (p == null) return "–";
+  const v = 100 * p;
+  if (v === 0) return "0%";
+  if (v < 0.01) return "<0.01%";
+  if (v < 1) return v.toFixed(2) + "%";
+  if (v < 10) return v.toFixed(1) + "%";
+  if (v >= 99.5) return Math.min(v, 99.9).toFixed(1) + "%";       // the model is never 100% certain
+  return v.toFixed(0) + "%";
+}
+const fmtTime = (ts) => new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+function ago(ts) { const s = Math.max(0, Date.now() / 1000 - ts);
+  if (s < 60) return "just now"; if (s < 3600) return Math.round(s / 60) + " min ago";
+  if (s < 86400) return Math.round(s / 3600) + " h ago"; return Math.round(s / 86400) + " days ago"; }
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const BADGE = {
+  good: { color: "var(--good)", icon: "✓", label: "Good" },
+  check: { color: "var(--warning)", icon: "!", label: "Check" },
+  bad: { color: "var(--critical)", icon: "✕", label: "Problem" },
+  test: { color: "var(--info)", icon: "ⓘ", label: "Test data" },
+  none: { color: "var(--info)", icon: "–", label: "No data yet" },
+  stable: { color: "var(--good)", icon: "✓", label: "similar" },
+  investigate: { color: "var(--warning)", icon: "!", label: "some change" },
+  ALERT: { color: "var(--critical)", icon: "✕", label: "different" },
+  expected: { color: "var(--info)", icon: "◷", label: "time of day" },
+  REVIEW: { color: "var(--critical)", icon: "⚑", label: "REVIEW" },
+  APPROVE: { color: "var(--good)", icon: "✓", label: "APPROVE" },
+};
+const badge = (k) => { const b = BADGE[k]; return `<span class="badge"><span class="dot" style="background:${b.color}"></span>${b.icon} ${b.label}</span>`; };
+const setCheck = (id, state, html) => { $("s" + id).innerHTML = badge(state); $("a" + id).innerHTML = html; };
+
+// ---------- tooltip ----------
+const tip = $("tip");
+function showTip(ev, html) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + pad, y = ev.clientY - h - pad;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - pad;
+  if (y < 8) y = ev.clientY + pad;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => { tip.style.opacity = 0; };
+function el(tag, attrs = {}, parent) { const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
+// round axis steps: 1, 2, 5, 10, 20, 50 ... with at most 5 gridlines above zero
+function niceTicks(dataMax) {
+  let step = 1;
+  while (Math.ceil(dataMax / step) > 5) step = [1, 2, 5].map((k) => k * Math.pow(10, Math.floor(Math.log10(step)))).concat(10 * Math.pow(10, Math.floor(Math.log10(step)))).find((c) => c > step);
+  const n = Math.max(1, Math.ceil(dataMax / step));
+  return { step, n, max: n * step };
+}
+function niceMax(v) { if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p;
+  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }
+function vBarPath(x, y, w, h, r = 4) { r = Math.min(r, w / 2, h); if (h <= 0) return "";
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
+function hBarPath(x, y, w, h, r = 4) { r = Math.min(r, h / 2, w); if (w <= 0) return "";
+  return `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}H${x}Z`; }
+
+// ---------- vertical bar chart (counts: whole-number axis) ----------
+function barChart(container, data, { xLabel = (d) => d.label, tipHtml, labelEvery = 1, ariaLabel }) {
+  container.innerHTML = "";
+  const W = 560, H = 200, m = { t: 10, r: 8, b: 30, l: 40 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": ariaLabel }, container);
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const { step, n: nTicks, max } = niceTicks(Math.max(...data.map((d) => d.value), 0));
+  for (let i = 0; i <= nTicks; i++) {
+    const v = i * step, y = m.t + ih - (ih * v) / max;
+    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: i === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 }, svg);
+    const t = el("text", { x: m.l - 6, y: y + 4, "text-anchor": "end" }, svg); t.textContent = v.toLocaleString();
+  }
+  const band = iw / data.length, bw = Math.max(2, Math.min(40, band - 2));
+  data.forEach((d, i) => {
+    const x = m.l + i * band + (band - bw) / 2, h = (ih * d.value) / max, y = m.t + ih - h;
+    if (d.value > 0) el("path", { d: vBarPath(x, y, bw, h), fill: "var(--series-1)" }, svg);
+    const hit = el("rect", { x: m.l + i * band, y: m.t, width: band, height: ih, fill: "transparent" }, svg);
+    hit.addEventListener("mousemove", (ev) => { hit.setAttribute("fill", "var(--wash)"); showTip(ev, tipHtml(d)); });
+    hit.addEventListener("mouseleave", () => { hit.setAttribute("fill", "transparent"); hideTip(); });
+    if (i % labelEvery === 0 || i === data.length - 1) {
+      const t = el("text", { x: m.l + i * band + band / 2, y: H - m.b + 16, "text-anchor": "middle" }, svg); t.textContent = xLabel(d);
+    }
+  });
+}
+
+// ---------- line chart with crosshair ----------
+function lineChart(container, pts, ariaLabel) {
+  container.innerHTML = "";
+  if (!pts.length) { container.innerHTML = '<div class="empty">No scoring calls yet.</div>'; return; }
+  const W = 560, H = 200, m = { t: 10, r: 10, b: 30, l: 44 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": ariaLabel }, container);
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const { step, n: nTicks, max } = niceTicks(Math.ceil(Math.max(...pts.map((p) => p.ms), 1)));
+  const X = (i) => m.l + (pts.length === 1 ? iw / 2 : (iw * i) / (pts.length - 1));
+  const Y = (v) => m.t + ih - (ih * v) / max;
+  for (let i = 0; i <= nTicks; i++) {
+    const v = i * step, y = Y(v);
+    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: i === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 }, svg);
+    const t = el("text", { x: m.l - 6, y: y + 4, "text-anchor": "end" }, svg); t.textContent = v + " ms";
+  }
+  [0, pts.length - 1].forEach((i, k) => { if (k && pts.length === 1) return;
+    const t = el("text", { x: X(i), y: H - m.b + 16, "text-anchor": pts.length === 1 ? "middle" : (k ? "end" : "start") }, svg); t.textContent = fmtTime(pts[i].ts); });
+  el("polyline", { points: pts.map((p, i) => `${X(i)},${Y(p.ms)}`).join(" "), fill: "none", stroke: "var(--series-1)",
+    "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+  if (pts.length === 1) el("circle", { cx: X(0), cy: Y(pts[0].ms), r: 4, fill: "var(--series-1)" }, svg);
+  const cross = el("line", { y1: m.t, y2: m.t + ih, stroke: "var(--axis)", "stroke-width": 1, opacity: 0 }, svg);
+  const dot = el("circle", { r: 4.5, fill: "var(--series-1)", stroke: "var(--surface-1)", "stroke-width": 2, opacity: 0 }, svg);
+  const hit = el("rect", { x: m.l, y: m.t, width: iw, height: ih, fill: "transparent" }, svg);
+  hit.addEventListener("mousemove", (ev) => {
+    const r = svg.getBoundingClientRect(), sx = ((ev.clientX - r.left) / r.width) * W;
+    const i = Math.max(0, Math.min(pts.length - 1, Math.round(((sx - m.l) / iw) * (pts.length - 1))));
+    const p = pts[i]; cross.setAttribute("x1", X(i)); cross.setAttribute("x2", X(i)); cross.setAttribute("opacity", 1);
+    dot.setAttribute("cx", X(i)); dot.setAttribute("cy", Y(p.ms)); dot.setAttribute("opacity", 1);
+    showTip(ev, `${fmtTime(p.ts)} · ${esc(p.path)}<br><b>${p.ms} ms</b> for ${p.n} transaction${p.n === 1 ? "" : "s"}`);
+  });
+  hit.addEventListener("mouseleave", () => { cross.setAttribute("opacity", 0); dot.setAttribute("opacity", 0); hideTip(); });
+}
+
+// ---------- drift: horizontal bars + plain status ----------
+function driftChart(container, drift) {
+  container.innerHTML = "";
+  if (!drift) { container.innerHTML = '<div class="empty">Needs at least 100 recent transactions. Press “Send 50 test transactions” twice.</div>'; return; }
+  const rows = drift.features, W = 560, rowH = 20, m = { t: 6, r: 120, b: 26, l: 76 };
+  const H = m.t + rows.length * rowH + m.b, iw = W - m.l - m.r;
+  const max = Math.min(1, Math.max(0.3, niceMax(Math.max(...rows.map((r) => r.psi)))));
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Drift score by feature" }, container);
+  const X = (v) => m.l + (iw * Math.min(v, max)) / max;
+  [0.10, 0.25].forEach((v) => {
+    el("line", { x1: X(v), x2: X(v), y1: m.t, y2: H - m.b, stroke: "var(--axis)", "stroke-dasharray": "3 3" }, svg);
+    const t = el("text", { x: X(v), y: H - m.b + 14, "text-anchor": "middle" }, svg); t.textContent = v.toFixed(2);
+  });
+  const et = el("text", { x: m.l + iw, y: H - m.b + 14, "text-anchor": "end" }, svg); et.textContent = max.toFixed(2) + (max === 1 ? "+" : "");
+  rows.forEach((r, i) => {
+    const y = m.t + i * rowH, bh = 12, over = r.psi > max, time = r.status === "expected";
+    const name = r.feature === "log_amount" ? "amount" : r.feature;
+    const lt = el("text", { x: m.l - 8, y: y + bh - 1, "text-anchor": "end" }, svg); lt.textContent = name; lt.style.fill = "var(--text-secondary)";
+    el("path", { d: hBarPath(m.l, y, Math.max(1, X(r.psi) - m.l), bh), fill: "var(--series-1)", opacity: time ? 0.35 : 1 }, svg);
+    if (over) el("path", { d: `M${X(r.psi) + 3},${y + 1}l5,${bh / 2 - 1}l-5,${bh / 2 - 1}`, fill: "none", stroke: "var(--series-1)", "stroke-width": 2, opacity: time ? 0.35 : 1 }, svg);
+    const vt = el("text", over ? { x: X(r.psi) - 6, y: y + bh - 2, "text-anchor": "end" } : { x: X(r.psi) + 6, y: y + bh - 1 }, svg);
+    vt.textContent = r.psi.toFixed(2); vt.style.fill = over ? "#ffffff" : "var(--text-primary)";
+    const b = BADGE[r.status];
+    el("circle", { cx: W - m.r + 46, cy: y + bh / 2, r: 4, fill: b.color }, svg);
+    const st = el("text", { x: W - m.r + 54, y: y + bh - 1 }, svg); st.textContent = `${b.icon} ${b.label}`; st.style.fill = "var(--text-secondary)";
+    const hit = el("rect", { x: 0, y: y - 4, width: W, height: rowH, fill: "transparent" }, svg);
+    const explain = time ? "Hour of day. Changes whenever traffic covers only part of the day, so it is not counted as a problem."
+      : r.status === "ALERT" ? "Recent values are clearly different from the training data."
+      : r.status === "investigate" ? "Recent values have shifted somewhat from the training data." : "Recent values look like the training data.";
+    hit.addEventListener("mousemove", (ev) => showTip(ev, `<b>${esc(name)}</b>: drift ${r.psi.toFixed(3)}<br>${explain}`));
+    hit.addEventListener("mouseleave", hideTip);
+  });
+}
+
+// ---------- render ----------
+let lastData = null;
+function render(d) {
+  lastData = d;
+  const t = d.totals, m = d.model, ref = d.reference || {}, real = !d.filter.include_test;
+  const testShare = (() => { const mix = d.traffic_mix || []; const tot = mix.reduce((a, r) => a + r.transactions, 0);
+    const test = mix.filter((r) => r.source !== "api").reduce((a, r) => a + r.transactions, 0); return { tot, test }; })();
+
+  // traffic mix line
+  const mixParts = (d.traffic_mix || []).filter((r) => r.requests).map((r) => `${fmtInt(r.transactions)} from ${esc(r.label)}`);
+  $("mix").innerHTML = !mixParts.length ? "No API traffic recorded yet. Press <b>Send 50 test transactions</b> or call the API to see data."
+    : (real ? `<b>Showing real API calls only.</b> ` : `<b>Showing all traffic.</b> `) + `Transactions scored so far: ${mixParts.join(" · ")}.` +
+      (!real && testShare.test ? ` Test and demo samples contain far more fraud than real traffic, so alert rates and scores below are higher than you would see in real use.` : "");
+
+  // ---- at a glance ----
+  if (!t.requests) {
+    setCheck("Up", "good", "Online: this page is served by the API. No API calls recorded yet.");
+  } else setCheck("Up", "good", `Online. Answered <b>${fmtInt(t.requests)}</b> call${t.requests === 1 ? "" : "s"}; last one ${ago(t.last_ts)}.`);
+  if (t.latency_p95_ms == null) setCheck("Fast", "none", "No scoring calls yet.");
+  else setCheck("Fast", t.latency_p95_ms < 500 ? "good" : "check",
+    `Typical scoring call: <b>${Math.round(t.latency_avg_ms)} ms</b>; slowest 5%: ${Math.round(t.latency_p95_ms)} ms` +
+    (t.latency_p95_ms < 500 ? " (well under the 500 ms target)." : " (above the 500 ms target)."));
+  if (!t.requests) setCheck("Err", "none", "No calls yet.");
+  else if (t.server_errors) setCheck("Err", "bad", `<b>${t.server_errors}</b> server error${t.server_errors === 1 ? "" : "s"} (the API itself failed). Check the Modal logs.`);
+  else setCheck("Err", "good", `No server errors.` + (t.client_errors ? ` ${t.client_errors} call${t.client_errors === 1 ? " was" : "s were"} rejected for invalid input (e.g. a negative amount): the API protecting itself, not a fault.` : ""));
+  if (!t.transactions) setCheck("Dec", "none", "No transactions scored yet.");
+  else {
+    const expected = ref.test_alert_rate != null ? ` On real data the model sent about <b>${pct(ref.test_alert_rate)}</b> to review.` : "";
+    const onlyTest = !real && testShare.test === testShare.tot;
+    setCheck("Dec", onlyTest || (!real && testShare.test) ? "test" : (t.alert_rate > 0.05 ? "check" : "good"),
+      `Sent <b>${fmtInt(t.alerts)}</b> of ${fmtInt(t.transactions)} transactions to REVIEW (${pct(t.alert_rate)}).` + expected +
+      (!real && testShare.test ? " The difference comes from the fraud-rich test samples." : ""));
+  }
+  const dr = d.drift;
+  if (!dr) setCheck("Drift", "none", "Needs at least 100 recent transactions to judge.");
+  else {
+    const state = dr.alerts ? "check" : dr.investigate ? "check" : "good";
+    setCheck("Drift", !real && testShare.test ? "test" : state,
+      `${dr.stable} of ${dr.data_features} inputs look like the training data, ${dr.investigate} changed somewhat, <b>${dr.alerts}</b> clearly different.` +
+      (!real && testShare.test ? " The test sample comes from a later day (evening of day 2), so some difference is expected." : ""));
+  }
+
+  // ---- numbers ----
+  $("kRequests").textContent = fmtInt(t.requests);
+  $("kRequestsNote").textContent = t.first_ts ? `since ${new Date(t.first_ts * 1000).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : "requests received";
+  $("kTxns").textContent = fmtInt(t.transactions);
+  $("kTxnsNote").textContent = `in ${fmtInt(t.scoring_requests)} scoring call${t.scoring_requests === 1 ? "" : "s"}`;
+  $("kAlerts").textContent = fmtInt(t.alerts);
+  $("kAlertsNote").textContent = t.alert_rate == null ? "flagged for an analyst to check" : `${pct(t.alert_rate)} of transactions`;
+  $("kMeanP").textContent = pct(t.mean_p);
+  $("kLat").textContent = t.latency_avg_ms == null ? "–" : `${Math.round(t.latency_avg_ms)} ms`;
+  $("kLatNote").textContent = t.latency_p95_ms == null ? "average per scoring call" : `average · slowest 5%: ${Math.round(t.latency_p95_ms)} ms`;
+  $("kErr").textContent = fmtInt(t.server_errors);
+  $("kErrNote").textContent = `server errors · ${fmtInt(t.client_errors)} rejected input${t.client_errors === 1 ? "" : "s"}`;
+
+  // ---- charts ----
+  const rpm = d.requests_per_minute.map((r) => ({ label: fmtTime(r.t).slice(0, 5), value: r.count, t: r.t }));
+  barChart($("cRpm"), rpm, { labelEvery: 6, ariaLabel: "API calls per minute",
+    tipHtml: (r) => `minute ending ${fmtTime(r.t).slice(0, 5)}<br><b>${r.value}</b> call${r.value === 1 ? "" : "s"}` });
+  const busy = rpm.filter((r) => r.value > 0);
+  $("nRpm").innerHTML = !busy.length ? "<b>Right now:</b> no calls in the last 30 minutes. Modal has probably put the server to sleep; the next call wakes it (10–20 s)."
+    : `<b>Right now:</b> ${fmtInt(rpm.reduce((a, r) => a + r.value, 0))} calls in the last 30 minutes, busiest minute ${Math.max(...rpm.map((r) => r.value))} calls.`;
+
+  const binNames = ["below 0.01%", "0.01–0.1%", "0.1–1%", "1–10%", "10–50%", "50% or more"];
+  const binMeaning = ["almost certainly genuine", "very likely genuine", "probably genuine", "slightly suspicious", "suspicious", "very likely fraud"];
+  if (t.transactions) {
+    barChart($("cHist"), d.probability_hist.map((h, i) => ({ label: binNames[i], value: h.count, i })), { ariaLabel: "Transactions by fraud score",
+      tipHtml: (h) => `Fraud score ${binNames[h.i]}: <i>${binMeaning[h.i]}</i><br><b>${h.value.toLocaleString()}</b> transaction${h.value === 1 ? "" : "s"} (${pct(h.value / t.transactions)})` });
+    const low = d.probability_hist.slice(0, 3).reduce((a, h) => a + h.count, 0), high = d.probability_hist[5].count;
+    $("nHist").innerHTML = `<b>Right now:</b> ${pct(low / t.transactions)} of transactions score below 1% (look genuine); ` +
+      `${fmtInt(high)} (${pct(high / t.transactions)}) score 50% or more (look like fraud).` +
+      (!real && testShare.test ? " Expect more on the right than in real traffic because of the test samples." : "");
+  } else { $("cHist").innerHTML = '<div class="empty">No transactions scored yet.</div>'; $("nHist").innerHTML = "<b>Right now:</b> nothing to show."; }
+
+  lineChart($("cLat"), d.latency_series, "Response time per scoring call");
+  $("nLat").innerHTML = t.latency_avg_ms == null ? "<b>Right now:</b> no scoring calls yet."
+    : `<b>Right now:</b> average ${Math.round(t.latency_avg_ms)} ms per scoring call. The first call after a quiet period can be slower while Modal starts the server.`;
+
+  driftChart($("cDrift"), dr);
+  $("nDrift").innerHTML = !dr ? "<b>Right now:</b> not enough data yet."
+    : `<b>Right now:</b> ${dr.alerts ? `${dr.alerts} input${dr.alerts === 1 ? "" : "s"} clearly differ from training (largest: ${esc(dr.top_data_feature === "log_amount" ? "amount" : dr.top_data_feature)}, ${dr.max_data_psi.toFixed(2)}).` : "no input clearly differs from the training data."} ` +
+      `Based on ${fmtInt(dr.n)} recent transactions. A drift warning does not mean decisions are wrong, only that the data has changed and the model should be re-checked.`;
+
+  $("tRecent").innerHTML = d.recent.length ? `<table><thead><tr><th>Time</th><th class="num">Amount</th><th class="num">Fraud score</th>
+    <th class="num">Threshold</th><th>Decision</th><th>Why</th></tr></thead><tbody>${d.recent.slice(0, 10).map((r) => {
+      const why = r.d === "REVIEW" ? `${pct(r.p)} ≥ ${pct(r.t)}` : `${pct(r.p)} < ${pct(r.t)}`;
+      return `<tr><td>${fmtTime(r.ts)}</td><td class="num">€${r.amount.toFixed(2)}</td><td class="num">${pct(r.p)}</td>
+      <td class="num">${pct(r.t)}</td><td>${badge(r.d)}</td><td class="why">${why}</td></tr>`; }).join("")}</tbody></table>`
+    : '<div class="empty">No transactions scored yet.</div>';
+
+  const tm = m.test_metrics;
+  $("modelKv").innerHTML = [["Model", `${m.name} (+ probability calibration)`],
+    ["Decision rule", "REVIEW if fraud score ≥ €5 ÷ (€5 + amount)"],
+    ["Frauds caught (recall)", `${(100 * tm.recall).toFixed(1)}%`], ["Alerts that were fraud (precision)", `${(100 * tm.precision).toFixed(1)}%`],
+    ["Fraud losses avoided", `${tm["saving %"].toFixed(1)}%`], ["Ranking quality (PR-AUC)", tm["PR-AUC"].toFixed(3)],
+    ["Trained", m.created]].map(([k, v]) => `<span>${esc(k)}</span><span>${esc(v)}</span>`).join("");
+  $("tEndpoints").innerHTML = d.by_endpoint.length ? `<table><thead><tr><th>Endpoint</th><th class="num">Calls</th>
+    <th class="num">Rejected or failed</th><th class="num">Avg time</th></tr></thead><tbody>${d.by_endpoint.map((r) => `<tr><td>${esc(r.endpoint)}</td>
+    <td class="num">${r.count}</td><td class="num">${r.errors}</td><td class="num">${r.avg_ms} ms</td></tr>`).join("")}</tbody></table>`
+    : '<div class="empty">No calls yet.</div>';
+  $("footer").textContent = `Updated ${new Date(d.generated * 1000).toLocaleTimeString()} · opening this page is not counted as API traffic`;
+}
+
+async function load(fresh = false) {
+  const real = $("filter").value === "real";
+  try {
+    const q = new URLSearchParams({ include_test: !real }); if (fresh === true) q.set("fresh", "true");
+    const r = await fetch("/metrics?" + q, { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    render(await r.json());
+  } catch (e) { $("msg").textContent = "Could not load the dashboard data (" + e.message + "). Retrying…"; }
+}
+
+// ---------- actions ----------
+$("sendBtn").addEventListener("click", async () => {
+  const b = $("sendBtn"); b.disabled = true; $("msg").textContent = "Sending 50 test transactions…";
+  try {
+    const rows = await (await fetch("/sample-batch?n=50")).json();
+    const res = await fetch("/score", { method: "POST", headers: { "Content-Type": "application/json", "X-Traffic-Source": "dashboard-test" }, body: JSON.stringify(rows) });
+    const out = await res.json();
+    const n = Array.isArray(out) ? out.filter((o) => o.decision === "REVIEW").length : 0;
+    $("msg").textContent = res.ok ? `Scored 50 test transactions: ${n} sent to REVIEW. (The test sample is about 18% fraud, real traffic about 0.2%.)` : `Request failed (${res.status}).`;
+  } catch (e) { $("msg").textContent = "Request failed: " + e.message; }
+  b.disabled = false; setTimeout(() => load(true), 300); setTimeout(() => load(true), 2000);
+});
+$("demoBtn").addEventListener("click", async () => {
+  const r = await fetch("/demo"); $("msg").textContent = r.ok ? "Ran /demo: 5 transactions (3 genuine, 2 real frauds)." : `/demo failed (${r.status}).`;
+  setTimeout(() => load(true), 300); setTimeout(() => load(true), 2000);
+});
+$("refreshBtn").addEventListener("click", () => load(true));
+$("filter").addEventListener("change", () => load(true));
+let timer = null;
+function schedule() { clearInterval(timer); const ms = Number($("interval").value);
+  if (ms > 0 && document.visibilityState === "visible") timer = setInterval(load, ms); }
+$("interval").addEventListener("change", schedule);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); schedule(); });
+try { if (!localStorage.getItem("fraudDashSeen")) { $("help").open = true; localStorage.setItem("fraudDashSeen", "1"); } } catch (e) { $("help").open = true; }
+load(); schedule();
+</script>
+</body>
+</html>

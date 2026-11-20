@@ -4,6 +4,7 @@
 
 **Live API:** https://millicentjerotich--fraud-detection-api-fastapi-app.modal.run/docs ·
 **Live dashboard:** https://millicentjerotich--fraud-detection-api-fastapi-app.modal.run/dashboard
+(technical view: [/dashboard/technical](https://millicentjerotich--fraud-detection-api-fastapi-app.modal.run/dashboard/technical))
 
 A reproducible pipeline that turns the Kaggle credit-card transactions dataset into a deployed fraud-scoring API.
 It covers data validation, time-ordered splitting, a shortlist of six model families, tuning, calibrated
@@ -89,7 +90,8 @@ flowchart LR
 │   └── predict.py               #   load the bundle and score transactions
 ├── app/main.py                  # FastAPI service
 ├── app/telemetry.py             # request recording + aggregation for the dashboard
-├── app/dashboard.html           # live monitoring dashboard page
+├── app/dashboard.html           # Card Fraud Monitor (plain-language dashboard)
+├── app/dashboard_technical.html # technical monitoring dashboard
 ├── artifacts/                   # trained, serialized model + metrics + model card (committed)
 ├── reports/REPORT.md            # final report; figures in reports/figures/
 ├── notebooks/                   # exploratory end-to-end notebook (incl. SMOTE and drift experiments)
@@ -180,7 +182,8 @@ Open **http://localhost:8000/docs** for interactive documentation.
 | `GET /demo` | scores 5 bundled test transactions (3 genuine, 2 real frauds) |
 | `POST /score` | scores up to 1,000 transactions |
 | `POST /drift` | PSI drift report for a batch (≥ 100 transactions) vs. the training reference |
-| `GET /dashboard` | **live monitoring dashboard** (see below) |
+| `GET /dashboard` | **Card Fraud Monitor**, plain-language dashboard (see below) |
+| `GET /dashboard/technical` | technical monitoring dashboard |
 | `GET /metrics` | the dashboard's data as JSON |
 | `GET /sample-batch?n=50` | random test-set transactions, used by the dashboard's test button |
 
@@ -197,17 +200,21 @@ Without Docker: `uvicorn app.main:app --port 8000`.
 
 ## Live dashboard
 
-Open **`/dashboard`** on the running API (locally `http://localhost:8000/dashboard`, or your `…modal.run/dashboard`).
-Every call to the API is recorded and the page refreshes itself every 10 seconds:
+The running API serves two dashboards that update automatically as the API is used (every call is recorded):
 
-- **Key figures:** requests, transactions scored, alerts (REVIEW) and alert rate, mean fraud probability,
-  latency (average and p95), errors
-- **Charts:** requests per minute, fraud-probability distribution, latency per scoring request,
-  input drift (PSI per feature vs. the training data)
-- **Tables:** the most recent scored transactions with their thresholds and decisions, and traffic by endpoint
+**`/dashboard`: Card Fraud Monitor (plain language, for non-technical readers).**
+Payments checked and their value, payments held for review, when payments happen (by hour of day), how risky they
+are (low / medium / high / very high risk), the latest held payments with the reason in words, the latest decisions,
+simple health checks, and a short glossary.
 
-Press **Send 50 test transactions** to generate traffic from the bundled test batch. The batch is fraud-enriched
-(74 of 400 rows are frauds), so its alert rate is far higher than real traffic.
+![Card Fraud Monitor](reports/figures/dashboard.png)
+
+**`/dashboard/technical`: technical view.** Five status checks, response time, score distribution, input drift
+(PSI per feature), traffic by endpoint and the model's test metrics.
+
+**Practice / test traffic vs. real traffic.** The dashboards' send buttons and `/demo` use samples with far more fraud
+(about 18% and 40%) than real card traffic (about 0.2%), so their alert rates look high on purpose. Every call is
+labelled by source, and the **Show** menu ("Real payments only" / "Real API calls only") hides it.
 
 ![Live dashboard](reports/figures/dashboard.png)
 
@@ -246,7 +253,7 @@ push to `main`.
 ## Tests and CI
 
 ```bash
-pytest -q        # 21 tests: features, data validation, cost model, PSI, API endpoints, dashboard
+pytest -q        # 24 tests: features, data validation, cost model, PSI, API endpoints, dashboards
 ```
 
 `.github/workflows/ci.yml` runs the tests on every push and pull request.

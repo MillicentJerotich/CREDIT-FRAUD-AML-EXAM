@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Fraud Monitor</title>
+<link rel="icon" href="data:,">
+<style>
+  .viz-root {
+    color-scheme: dark;
+    --page: #0b1416; --surface-1: #142124; --surface-2: #1b2b2e; --border: rgba(255,255,255,0.10);
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f9a98;
+    --grid: #26383b; --axis: #3a4e51; --accent: #2fb6a3;
+    --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --wash: rgba(255,255,255,0.06);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0b1416; }
+  .viz-root { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:
+      radial-gradient(1200px 500px at 0% 0%, rgba(47,182,163,0.16), transparent 60%), var(--page);
+    color: var(--text-primary); min-height: 100vh; padding: 28px 24px; line-height: 1.45; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 14px; margin-bottom: 14px; }
+  h1 { font-size: 30px; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
+  .lead { color: var(--text-secondary); font-size: 15px; max-width: 760px; margin: 0; }
+  h2 { font-size: 17px; margin: 0 0 4px; font-weight: 650; }
+  .desc { font-size: 13px; color: var(--text-muted); margin: 0 0 10px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--text-secondary); }
+  button, select { font: inherit; font-size: 13px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-primary); cursor: pointer; }
+  button.primary { background: var(--accent); color: #062420; border-color: transparent; font-weight: 650; }
+  button:disabled { opacity: .6; cursor: progress; }
+  a { color: var(--accent); }
+  .banner { font-size: 14px; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; background: rgba(250,178,25,0.10);
+    border: 1px solid rgba(250,178,25,0.35); color: var(--text-primary); display: none; }
+  .banner.show { display: block; }
+  .msg { font-size: 13px; color: var(--text-secondary); min-height: 18px; margin-bottom: 6px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+  .row1 { display: grid; grid-template-columns: 270px 1fr 360px; gap: 14px; margin-bottom: 14px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 1100px) { .row1 { grid-template-columns: 1fr 1fr; } .row1 .chartcard { grid-column: 1 / -1; order: 3; }
+    .row2 { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .row1, .row2 { grid-template-columns: 1fr; } }
+  .kpis { display: grid; gap: 14px; }
+  .kpi { border-radius: 14px; padding: 16px 18px; border: 1px solid var(--border); }
+  .kpi.a { background: linear-gradient(135deg, rgba(47,182,163,0.30), rgba(47,182,163,0.10)); }
+  .kpi.b { background: linear-gradient(135deg, rgba(208,59,59,0.30), rgba(208,59,59,0.10)); }
+  .kpi.c { background: var(--surface-1); }
+  .kpi .label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+  .kpi .value { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; margin: 2px 0; }
+  .kpi .note { font-size: 13px; color: var(--text-secondary); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+  .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: -1px; }
+  .now { font-size: 14px; background: var(--surface-2); border-radius: 10px; padding: 9px 12px; margin-top: 10px; color: var(--text-primary); }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  svg text { font-family: inherit; font-size: 11px; fill: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .seg { display: flex; gap: 2px; height: 64px; border-radius: 8px; overflow: hidden; margin: 6px 0 12px; }
+  .seg div { display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; min-width: 2px; }
+  .levels { display: grid; gap: 8px; }
+  .level { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: baseline; font-size: 14px; }
+  .level .what { color: var(--text-muted); font-size: 12px; }
+  .level .n { font-variant-numeric: tabular-nums; font-weight: 650; }
+  .alerts { display: grid; gap: 10px; }
+  .alert { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; background: var(--surface-2);
+    border: 1px solid var(--border); border-left: 3px solid var(--critical); border-radius: 10px; padding: 10px 12px; }
+  .alert .ic { width: 34px; height: 34px; border-radius: 8px; background: rgba(208,59,59,0.18); color: #ff8a8a;
+    display: flex; align-items: center; justify-content: center; font-size: 17px; }
+  .alert .t { font-size: 14px; }
+  .alert .s { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  th { text-align: left; font-weight: 600; color: var(--text-primary); font-size: 12.5px; padding: 9px 10px; background: rgba(47,182,163,0.22); }
+  th:first-child { border-radius: 8px 0 0 8px; } th:last-child { border-radius: 0 8px 8px 0; }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  td.num, th.num { text-align: right; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 650; white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+  .empty { color: var(--text-muted); font-size: 14px; padding: 26px 0; text-align: center; }
+  .health { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .hc { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+  .hc .big { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; }
+  .hc .q { font-size: 14px; font-weight: 650; }
+  .hc .a { font-size: 13px; color: var(--text-secondary); }
+  .glossary { font-size: 13px; color: var(--text-secondary); }
+  .glossary b { color: var(--text-primary); }
+  .glossary ul { margin: 6px 0 0; padding-left: 18px; } .glossary li { margin-bottom: 4px; }
+  .tip { position: fixed; pointer-events: none; background: #0f1a1c; color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 11px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    opacity: 0; transition: opacity .08s; z-index: 10; max-width: 300px; }
+  footer { color: var(--text-muted); font-size: 12px; margin-top: 10px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Card Fraud Monitor</h1>
+      <p class="lead">Every card payment sent to the system is checked automatically. Payments that look suspicious are
+        <b>held for a person to review</b>; the rest are approved straight away.</p>
+    </div>
+    <div class="controls">
+      <button class="primary" id="sendBtn">Send 50 practice payments</button>
+      <label>Show <select id="filter">
+        <option value="all" selected>All payments</option>
+        <option value="real">Real payments only</option>
+      </select></label>
+      <label>Update every <select id="interval">
+        <option value="10000" selected>10 s</option><option value="30000">30 s</option><option value="0">never</option>
+      </select></label>
+      <button id="refreshBtn">Update now</button>
+    </div>
+  </header>
+  <div class="msg" id="msg" role="status"></div>
+  <div class="banner" id="banner"></div>
+
+  <div class="row1">
+    <div class="kpis">
+      <div class="kpi a"><div class="label">Payments checked</div><div class="value" id="kChecked">–</div><div class="note" id="kCheckedNote">&nbsp;</div></div>
+      <div class="kpi b"><div class="label">Held for review</div><div class="value" id="kHeld">–</div><div class="note" id="kHeldNote">&nbsp;</div></div>
+      <div class="kpi c"><div class="label">Value held for review</div><div class="value" id="kValue" style="font-size:30px">–</div><div class="note" id="kValueNote">&nbsp;</div></div>
+    </div>
+
+    <div class="card chartcard">
+      <h2>When do payments happen?</h2>
+      <p class="desc">Payments by the hour of day they were made, split by what the system decided.</p>
+      <div id="cHours"></div>
+      <div class="legend"><span><span class="sw" style="background:var(--good)"></span>✓ Approved automatically</span>
+        <span><span class="sw" style="background:var(--critical)"></span>⚑ Held for review</span></div>
+      <div class="now" id="nHours">&nbsp;</div>
+    </div>
+
+    <div class="card">
+      <h2>How risky are the payments?</h2>
+      <p class="desc">Every payment gets a risk score: the system's estimated chance that it is fraud.</p>
+      <div class="seg" id="seg"></div>
+      <div class="levels" id="levels"></div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <h2>Payments held for review</h2>
+      <p class="desc">The latest payments the system stopped, and why. A held payment is a suspicion, not proof of fraud.</p>
+      <div class="alerts" id="alerts"></div>
+    </div>
+    <div class="card">
+      <h2>Latest decisions</h2>
+      <p class="desc">The most recent payments checked, newest first.</p>
+      <div id="latest"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <h2>Is the system working properly?</h2>
+    <p class="desc">Quick health checks. <a href="/dashboard/technical">See the technical details →</a></p>
+    <div class="health" id="health"></div>
+  </div>
+
+  <div class="card glossary">
+    <h2>What the words mean</h2>
+    <ul>
+      <li><b>Risk score</b>: the system's estimate of how likely a payment is to be fraud, from 0% (certainly genuine) to 100% (certainly fraud).</li>
+      <li><b>Held for review</b>: the payment is paused until a person checks it. It does not mean the payment is fraud; most held payments in real use turn out to be fraud, but not all.</li>
+      <li><b>Why bigger payments are held at lower risk</b>: missing a fraud costs the whole payment, while a needless check costs about €5 of staff time.
+        So a €1,000 payment is held at about 0.5% risk, but a €5 payment only at about 50%.</li>
+      <li><b>Practice payments</b>: examples from past data that contain far more fraud than normal, used to show the dashboard working.</li>
+    </ul>
+  </div>
+  <footer><span id="footer"></span><span><a href="/dashboard/technical">Technical dashboard</a> · <a href="/docs">API documentation</a></span></footer>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const n = (v) => v == null ? "–" : Number(v).toLocaleString();
+const eur = (v) => v == null ? "–" : "€" + Number(v).toLocaleString(undefined, { minimumFractionDigits: v < 1000 ? 2 : 0, maximumFractionDigits: v < 1000 ? 2 : 0 });
+function pct(p) { if (p == null) return "–"; const v = 100 * p; if (v === 0) return "0%"; if (v < 0.1) return "under 0.1%";
+  if (v < 1) return v.toFixed(1) + "%"; if (v >= 99.5) return Math.min(v, 99.9).toFixed(1) + "%"; return v.toFixed(0) + "%"; }
+const share = (a, b) => b ? Math.round((100 * a) / b) + "%" : "–";
+const clock = (ts) => new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+const hourLabel = (h) => h == null ? "–" : `${String(h).padStart(2, "0")}:00–${String((h + 1) % 24).padStart(2, "0")}:00`;
+function ago(ts) { const s = Math.max(0, Date.now() / 1000 - ts); if (s < 60) return "just now";
+  if (s < 3600) return Math.round(s / 60) + " min ago"; if (s < 86400) return Math.round(s / 3600) + " hours ago"; return Math.round(s / 86400) + " days ago"; }
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const LEVELS = [
+  { key: "low", name: "Low risk", what: "below 1%: looks genuine", color: "var(--good)", icon: "✓" },
+  { key: "med", name: "Medium risk", what: "1–10%", color: "var(--warning)", icon: "!" },
+  { key: "high", name: "High risk", what: "10–50%", color: "var(--serious)", icon: "!!" },
+  { key: "vhigh", name: "Very high risk", what: "50% or more: looks like fraud", color: "var(--critical)", icon: "⚑" },
+];
+const levelOf = (p) => p < 0.01 ? LEVELS[0] : p < 0.1 ? LEVELS[1] : p < 0.5 ? LEVELS[2] : LEVELS[3];
+const levelChip = (p) => { const l = levelOf(p); return `<span class="chip"><span class="dot" style="background:${l.color}"></span>${l.name}</span>`; };
+const decisionChip = (d) => d === "REVIEW"
+  ? `<span class="chip"><span class="dot" style="background:var(--critical)"></span>⚑ Held</span>`
+  : `<span class="chip"><span class="dot" style="background:var(--good)"></span>✓ Approved</span>`;
+
+const tip = $("tip");
+function showTip(ev, html) { tip.innerHTML = html; tip.style.opacity = 1; const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY - h - 14; if (x + w > innerWidth - 8) x = ev.clientX - w - 14; if (y < 8) y = ev.clientY + 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px"; }
+const hideTip = () => { tip.style.opacity = 0; };
+function el(tag, attrs = {}, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function niceTicks(max) { let step = 1;
+  while (Math.ceil(max / step) > 5) step = [1, 2, 5].map((k) => k * Math.pow(10, Math.floor(Math.log10(step)))).concat(10 * Math.pow(10, Math.floor(Math.log10(step)))).find((c) => c > step);
+  const k = Math.max(1, Math.ceil(max / step)); return { step, k, top: k * step }; }
+function barPath(x, y, w, h, r = 3) { r = Math.min(r, w / 2, h); if (h <= 0) return "";
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
+
+// grouped bars per hour: approved vs held
+function hoursChart(box, rows) {
+  box.innerHTML = "";
+  const total = rows.reduce((a, r) => a + r.approved + r.review, 0);
+  if (!total) { box.innerHTML = '<div class="empty">No payments checked yet.</div>'; return; }
+  const W = 640, H = 220, m = { t: 10, r: 6, b: 28, l: 34 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Payments by hour of day" }, box);
+  const { step, k, top } = niceTicks(Math.max(...rows.map((r) => Math.max(r.approved, r.review))));
+  for (let i = 0; i <= k; i++) { const v = i * step, y = m.t + ih - (ih * v) / top;
+    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: i ? "var(--grid)" : "var(--axis)" }, svg);
+    const t = el("text", { x: m.l - 6, y: y + 4, "text-anchor": "end" }, svg); t.textContent = v.toLocaleString(); }
+  const band = iw / 24, bw = Math.max(2, (band - 4) / 2 - 1);
+  rows.forEach((r, i) => {
+    const x0 = m.l + i * band + 2;
+    [[r.approved, "var(--good)", 0], [r.review, "var(--critical)", 1]].forEach(([v, c, j]) => {
+      const h = (ih * v) / top; if (v > 0) el("path", { d: barPath(x0 + j * (bw + 2), m.t + ih - h, bw, h), fill: c }, svg); });
+    const hit = el("rect", { x: m.l + i * band, y: m.t, width: band, height: ih, fill: "transparent" }, svg);
+    hit.addEventListener("mousemove", (ev) => { hit.setAttribute("fill", "var(--wash)");
+      showTip(ev, `<b>${hourLabel(r.hour)}</b><br>✓ ${n(r.approved)} approved · ⚑ ${n(r.review)} held`); });
+    hit.addEventListener("mouseleave", () => { hit.setAttribute("fill", "transparent"); hideTip(); });
+    if (i % 3 === 0) { const t = el("text", { x: m.l + i * band + band / 2, y: H - m.b + 16, "text-anchor": "middle" }, svg);
+      t.textContent = String(r.hour).padStart(2, "0") + ":00"; }
+  });
+}
+
+function render(d) {
+  const t = d.totals, real = !d.filter.include_test, ref = d.reference || {};
+  const mix = d.traffic_mix || [], practice = mix.filter((r) => r.source !== "api").reduce((a, r) => a + r.transactions, 0);
+  const banner = $("banner");
+  if (!real && practice) { banner.className = "banner show";
+    banner.innerHTML = `<b>Includes ${n(practice)} practice payments.</b> These come from past data with far more fraud than normal (about 18% instead of 0.2%), ` +
+      `so many more payments are held than you would see in real use. Choose <b>Show → Real payments only</b> to hide them.`;
+  } else if (real) { banner.className = "banner show"; banner.innerHTML = "<b>Showing real payments only</b> (practice payments are hidden)."; }
+  else banner.className = "banner";
+
+  // KPIs
+  $("kChecked").textContent = n(t.transactions);
+  $("kCheckedNote").textContent = t.transactions ? `worth ${eur(t.amount_total)} in total` : "no payments yet";
+  $("kHeld").textContent = n(t.alerts);
+  $("kHeldNote").textContent = t.transactions ? `${share(t.alerts, t.transactions)} of payments` + (ref.test_alert_rate != null ? ` (usually about ${(100 * ref.test_alert_rate).toFixed(1)}%)` : "") : " ";
+  $("kValue").textContent = eur(t.amount_review);
+  $("kValueNote").textContent = t.amount_total ? `${share(t.amount_review, t.amount_total)} of the money checked is waiting for a person` : " ";
+
+  // hours
+  hoursChart($("cHours"), d.by_hour);
+  const byHour = d.by_hour, tot = byHour.reduce((a, r) => a + r.approved + r.review, 0);
+  if (tot) {
+    const busiest = byHour.reduce((a, r) => (r.approved + r.review > a.approved + a.review ? r : a));
+    const held = byHour.filter((r) => r.review > 0);
+    const worst = held.length ? held.reduce((a, r) => (r.review / (r.approved + r.review) > a.review / (a.approved + a.review) ? r : a)) : null;
+    const night = byHour.filter((r) => r.hour < 6).reduce((a, r) => a + r.approved + r.review, 0);
+    $("nHours").innerHTML = `Busiest hour: <b>${hourLabel(busiest.hour)}</b> (${n(busiest.approved + busiest.review)} payments).` +
+      (worst ? ` The highest share held was at <b>${hourLabel(worst.hour)}</b>: ${worst.review} of ${worst.approved + worst.review} payments.` : " No payments held yet.") +
+      (night === 0 ? " No night-time payments yet; in the full data, fraud is most common between 01:00 and 06:00." : "");
+  } else $("nHours").textContent = "Send some payments to see when they happen.";
+
+  // risk levels (exact counts from the score bands)
+  const hcount = d.probability_hist.map((h) => h.count);
+  const counts = [hcount[0] + hcount[1] + hcount[2], hcount[3], hcount[4], hcount[5]];
+  const sumc = counts.reduce((a, b) => a + b, 0);
+  $("seg").innerHTML = sumc ? LEVELS.map((l, i) => counts[i] ? `<div style="flex:${Math.max(counts[i] / sumc, 0.02)};background:${l.color}"
+      title="${l.name}: ${counts[i]} (${share(counts[i], sumc)})">${counts[i] / sumc >= 0.08 ? share(counts[i], sumc) : ""}</div>` : "").join("")
+    : `<div style="flex:1;background:var(--surface-2);color:var(--text-muted);font-weight:500">No payments yet</div>`;
+  $("levels").innerHTML = LEVELS.map((l, i) => `<div class="level"><span class="chip"><span class="dot" style="background:${l.color}"></span>${l.icon} ${l.name}</span>
+      <span class="what">${l.what}</span><span class="n">${n(counts[i])} <span class="what">(${share(counts[i], sumc)})</span></span></div>`).join("");
+
+  // held payments
+  $("alerts").innerHTML = d.recent_alerts && d.recent_alerts.length ? d.recent_alerts.slice(0, 4).map((a) => `
+    <div class="alert"><div class="ic">⚑</div><div>
+      <div class="t"><b>${eur(a.amount)}</b> payment made ${a.hour != null ? `at ${hourLabel(a.hour)}` : ""}: <b>${pct(a.p)}</b> risk of fraud</div>
+      <div class="s">Held because its risk is above the ${pct(a.t)} limit for a payment of this size · checked ${ago(a.ts)}</div>
+    </div></div>`).join("")
+    : '<div class="empty">No payments held for review yet.</div>';
+
+  // latest decisions
+  $("latest").innerHTML = d.recent.length ? `<table><thead><tr><th>Checked</th><th class="num">Amount</th><th>Risk</th><th>Decision</th><th>In plain words</th></tr></thead><tbody>` +
+    d.recent.slice(0, 7).map((r) => `<tr><td>${clock(r.ts)}</td><td class="num">${eur(r.amount)}</td><td>${levelChip(r.p)}</td><td>${decisionChip(r.d)}</td>
+      <td style="color:var(--text-secondary);font-size:12.5px">${r.d === "REVIEW" ? `Risk ${pct(r.p)} is above the ${pct(r.t)} limit` : `Risk ${pct(r.p)} is below the ${pct(r.t)} limit`}</td></tr>`).join("") +
+    `</tbody></table>` : '<div class="empty">No payments checked yet.</div>';
+
+  // health
+  const hc = (ok, mark, q, a) => `<div class="hc"><div class="big" style="background:${ok === true ? "var(--good)" : ok === false ? "var(--warning)" : "var(--axis)"}">${mark}</div><div><div class="q">${q}</div><div class="a">${a}</div></div></div>`;
+  const dr = d.drift;
+  $("health").innerHTML =
+    hc(true, "✓", "The system is online", t.requests ? `It has answered ${n(t.requests)} requests; the last one ${ago(t.last_ts)}.` : "Ready. No requests yet.") +
+    hc(t.latency_avg_ms == null ? null : t.latency_p95_ms < 500, t.latency_avg_ms == null ? "–" : t.latency_p95_ms < 500 ? "✓" : "!",
+       t.latency_avg_ms == null ? "Speed: not measured yet" : t.latency_p95_ms < 500 ? "Decisions are fast" : "Decisions are slower than they should be",
+       t.latency_avg_ms == null ? "Send some payments to measure it." : `A typical check takes about ${Math.max(0.01, t.latency_avg_ms / 1000).toFixed(2)} seconds, well within what a card payment allows.`) +
+    hc(t.server_errors === 0 ? true : t.requests ? false : null, t.server_errors === 0 ? "✓" : "!", t.server_errors ? "Some checks failed" : "No failed checks",
+       t.server_errors ? `${t.server_errors} requests failed. The technical team should look at the logs.` : (t.client_errors ? `${t.client_errors} badly formatted request${t.client_errors === 1 ? " was" : "s were"} turned away, which is correct.` : "Every request was handled.")) +
+    hc(dr ? (dr.alerts === 0) : null, dr ? (dr.alerts === 0 ? "✓" : "!") : "–", dr ? (dr.alerts === 0 ? "Payments look like usual" : "Payments look different from usual") : "Too early to compare with usual payments",
+       dr ? (dr.alerts === 0 ? "Recent payments resemble the ones the system learned from." :
+            `Recent payments differ from the ones the system learned from${!real && practice ? " (expected: the practice payments come from a different day)" : ""}. If this continues with real payments, the system should be re-checked.`)
+          : "Needs at least 100 payments.");
+
+  $("footer").textContent = `Last updated ${new Date(d.generated * 1000).toLocaleTimeString()} · opening this page does not count as a payment`;
+}
+
+async function load(fresh = false) {
+  const q = new URLSearchParams({ include_test: $("filter").value !== "real" }); if (fresh === true) q.set("fresh", "true");
+  try { const r = await fetch("/metrics?" + q, { cache: "no-store" }); if (!r.ok) throw new Error(r.status); render(await r.json()); }
+  catch (e) { $("msg").textContent = "Could not load the latest figures (" + e.message + "). Trying again…"; }
+}
+$("sendBtn").addEventListener("click", async () => {
+  const b = $("sendBtn"); b.disabled = true; $("msg").textContent = "Sending 50 practice payments…";
+  try {
+    const rows = await (await fetch("/sample-batch?n=50")).json();
+    const res = await fetch("/score", { method: "POST", headers: { "Content-Type": "application/json", "X-Traffic-Source": "dashboard-test" }, body: JSON.stringify(rows) });
+    const out = await res.json(); const held = Array.isArray(out) ? out.filter((o) => o.decision === "REVIEW").length : 0;
+    $("msg").textContent = res.ok ? `Checked 50 practice payments: ${held} held for review, ${50 - held} approved.` : `Something went wrong (${res.status}).`;
+  } catch (e) { $("msg").textContent = "Something went wrong: " + e.message; }
+  b.disabled = false; setTimeout(() => load(true), 300); setTimeout(() => load(true), 2000);
+});
+$("refreshBtn").addEventListener("click", () => load(true));
+$("filter").addEventListener("change", () => load(true));
+let timer = null;
+function schedule() { clearInterval(timer); const ms = Number($("interval").value); if (ms > 0 && document.visibilityState === "visible") timer = setInterval(load, ms); }
+$("interval").addEventListener("change", schedule);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); schedule(); });
+load(); schedule();
+</script>
+</body>
+</html>
